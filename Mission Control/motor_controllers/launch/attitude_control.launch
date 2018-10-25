@@ -1,0 +1,44 @@
+<launch>
+    <node name="controller" pkg="pid" type="controller" ns="yaw_control" >
+      <param name="node_name" value="yaw_pid" />
+      <param name="Kp" value=".82" />
+      <param name="Ki" value=".08" />
+      <param name="Kd" value=".54" />
+      <param name="upper_limit" value="100" />
+      <param name="lower_limit" value="-100" />
+      <param name="windup_limit" value="50" />
+      <param name="max_loop_frequency" value="100.0" />
+      <param name="min_loop_frequency" value="100.0" />
+      <remap from="yaw_setpoint" to="/setpoint" />
+      <remap from="/yaw_control/pid_enable" to="/yaw_control/pid_enable" />
+    </node>
+    
+    <node name="yaw_plant" pkg="motor_controllers" type="yaw_controller.py" ns="yaw_control">
+      <remap from="/yaw_pwm_feedback" to="/yaw_pwm_feedback" />  
+    </node> 
+
+    <node name="controller" pkg="pid" type="controller" ns="depth_control" >
+      <param name="node_name" value="depth_pid" />
+      <param name="Kp" value=".45" />
+      <param name="Ki" value=".1" />
+      <param name="Kd" value=".26" />
+      <param name="upper_limit" value="100" />
+      <param name="lower_limit" value="-100" />
+      <param name="windup_limit" value="50" />
+      <param name="max_loop_frequency" value="100.0" />
+      <param name="min_loop_frequency" value="100.0" />
+      <remap from="depth_setpoint" to="/setpoint" />
+      <remap from="/depth_control/pid_enable" to="/depth_control/pid_enable" />
+    </node>
+
+    <node name="depth_plant" pkg="motor_controllers" type="depth_controller.py" ns="depth_control">
+	<remap from="/depth_pwm_feedback" to="/depth_pwm_feedback" />
+    </node>
+
+     <node name="seadragon_reconfigure" pkg="seadragon_reconfigure" type = "server.py" >
+    </node>
+	
+    <node name="rqt_reconfigure" pkg="rqt_reconfigure" type="rqt_reconfigure" >
+    </node> 
+
+</launch>
