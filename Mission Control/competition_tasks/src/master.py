@@ -1,4 +1,5 @@
 
+
 #!/usr/bin/env python
 
 ##------------------------------- IMPORTS ---------------------------------------##
@@ -22,27 +23,45 @@ class idle(smach.State):
 
 		smach.State.__init__(self, outcomes=['go','!go'])
 		
-		# Publishers, Subscribers
-		self.depth_subscriber = rospy.Subscriber('/depth', Int16, self.depth_callback)
+		# Subscribers
+		self.depth_subscriber = rospy.Subscriber('/depth', Int16, self.depth_callback)		
+		
+		# Publishers
+		self.yawPidEnable_publisher	= rospy.Publisher('/yaw_control/pid_enable', Bool, queue_size=10)
+		self.depthPidEnable_publisher	= rospy.Publisher('/depth_control/pid_enable', Bool, queue_size=10)
+		self.fwdThrust_publisher	= rospy.Publisher('/yaw_pwm', Int16, queue_size=10) 
+		self.taskReset_publisher	= rospy.Publisher('/reset', Bool, queue_size=10)
+			
+		# Publisher Data Containers
+		self.taskReset			= Bool()
+		self.taskReset.data		= True
+		self.Disable			= Bool()
+		self.Disable.data 		= False
+		self.fwdThrust			= Int16()
+		self.fwdThrust.data 		= 0
 
-		# Local variable example
-		self.depthStart = 0
+		# Local variables
+		self.depthStart     = 0
+		self.systemDisabled = False
 
 	def depth_callback(self,msg):
 		self.depthStart = msg.data
 
 	def execute(self, userdata):
-
-		'''
-
-			Reset Hardware
-
-		'''
-
+		
+		# Disable Motor control System & Task statemachines
+		if self.systemDisabled == False:
+			self.fwdThrust_publisher.publish(self.fwdThrust)
+			self.taskReset_publisher.publish(self.taskReset)
+			self.yawPidEnable_publisher.publish(self.Disable)
+			self.depthPidEnable_publisher.publish(self.Disable)
+			self.systemDisabled = True
+		
 		# Check if sub has been pushed down 'x' inches to begin run
-
 		if self.depthStart > 12:
+			self.systemDisabled = False
 			return 'go'
+
 		else:
 			return '!go'
 
@@ -56,20 +75,24 @@ class transition(smach.State):
 
 		smach.State.__init__(self, outcomes=['timeup','!timeup','reset'])
 
-		# Publishers, Subscribers
-		self.reset_subscriber = rospy.Subscriber('/reset', Bool, self.reset_callback) 
+		# Subscribers
+		self.depth_subscriber		= rospy.Subscriber('/depth', Int16, self.depth_callback) 
+		
+		# Publishers
+		self.fwdThrust_publisher	= rospy.Publisher('/yaw_pwm', Int16, queue_size=10)
+		
+		# Publisher Data Containers
+		self.fwdThrust			= Int16()
+		self.fwdThrust.data		= 0
 
 		# Local Variables
-
 		self.timer = 0
-
-		self.reset = False
-
+		self.resetDepth = 0
 
 
-	def reset_callback(self,msg):
+	def depth_callback(self,msg):
 
-		self.reset = msg.data
+		self.resetDepth = msg.data
 
 
 
@@ -77,18 +100,27 @@ class transition(smach.State):
 
 		self.timer += 1
 
-		if self.reset == True:
+		# Begin Accelerating until cruising speed is reached
+		if self.timer % 200 == 0:
+			if self.fwdThrust.data < 280:
+				self.fwdThrust.data += 1
+				self.fwdThrust_publisher.publish(self.fwdThrust)
 
+		# State Transitions
+		if self.resetDepth < 6:
+			# Reset Local Variables
+			self.fwdThrust.data = 0			
+			self.timer = 0
 			return 'reset'
 
-		elif self.timer > 20000:
-
+		elif self.timer > 80000:
 			self.timer = 0
-
+			# Stop Sub in preparation for search
+			self.fwdThrust.data = 0
+			self.fwdThrust_publisher.publish(self.fwdThrust)
 			return 'timeup'
 
 		else:
-
 			return '!timeup'			
 
 
@@ -207,8 +239,9 @@ class execute(smach.State):
 
 		elif self.taskComplete == True:
 			# Reset Task Enable Variables for Next Task
-			self.taskEnabled = False
-			self.enable.data = False
+			self.taskEnabled  = False
+			self.enable.data  = False
+			self.taskComplete = False
 			self.task 	 = 3	 # Dummy number to prevent previous task from starting again
 			return 'taskcomplete'
 
