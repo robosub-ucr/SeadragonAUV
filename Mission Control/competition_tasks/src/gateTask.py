@@ -58,9 +58,13 @@ from std_msgs.msg import Bool, Float64, Int16
 
 ##----------------------------- END IMPORTS -------------------------------------##
 
+#depth is in inches
+global depth_start
+depth_start = 18
 
-
-
+#will change acording to direction of gate
+global desired_orientation
+desired_orientation = 90
 
 ##------------------------- STATE DEFINITIONS -----------------------------------##
 
@@ -74,42 +78,38 @@ class init(smach.State):
 
 		smach.State.__init__(self, outcomes=['start','wait'])
 
+		self.gateEnable_subscriber    = rospy.Subscriber('/gate_enable', Bool, self.task_callback)	
+		self.gateEnabled = False		
 		
+	
+		self.depthPoint_publisher     = rospy.Publisher('/depth_control/setpoint', Float64, queue_size=10)
+		self.depthPoint = Float64()
+	
+		self.depthPidEnable_publisher = rospy.Publisher('/depth_control/pid_enable', Bool, queue_size=10)
+		self.depthEnable = Bool()	
 
-		'''	 
-
-			Publishers, Subscribers & Local variables go here
-
-		'''
-
-
-
-		# Local variable example
-
-		self.timer = 0
-
+		
+    
+    	def task_callback(self, msg):
+		self.gateEnabled = msg.data	
+    
 	
 
 	def execute(self, userdata):
 
 	
 
-		'''
-
-			State Actions go here
-
-		'''
-
-
-
-		# Check if condition for transitioning to next state was met here.
-
-		self.timer += 1
-
-		if self.timer > 20000:
-
-			self.timer = 0
-
+		# Push down about two inches to start state machine
+		if self.gateEnabled == True:
+			
+	
+			# Set depth setpoint FIXME 48 - 4ft   120 - 10ft
+			global depth_start
+			self.depthPoint.data = depth_start
+			self.depthPoint_publisher.publish(self.depthPoint)
+			# Enable depth pid
+			self.depthEnable.data = True
+			self.depthPidEnable_publisher.publish(self.depthEnable)
 			return 'start'
 
 		else:
@@ -125,43 +125,41 @@ class DIVE(smach.State):
 	def __init__(self):
 
 		smach.State.__init__(self, outcomes=['ready','notready'])
+	
+		self.currDepth_subscriber	= rospy.Subscriber('/depth', Int16, self.depth_callback)
+		self.currDepth      = 0
+		global depth_start
+		self.depthPoint = depth_start
 
-		
-
-		# Publishers, Subscribers
-
-		self.depth_subscriber = rospy.Subscriber('/depth', Bool, self.depth_callback) 
-
-		
-
-		# Local Variables
-
-		self.timer = 0
-
-		self.depth = 0
-
-
-
-	def depth_callback(self,msg):
-
-		self.depth = msg.data
+		self.yawPoint_publisher     = rospy.Publisher('/yaw_control/setpoint', Float64, queue_size=10)
+		self.yawPoint = Float64()
+	
+		self.yawPidEnable_publisher = rospy.Publisher('/yaw_control/pid_enable', Bool, queue_size=10)
+		self.yawEnable = Bool()
+	
+	def depth_callback(self, msg):
+		self.currDepth      = msg.data
 
 
 
 	def execute(self, userdata):
 
+		rospy.loginfo('Executing state dive')
+		print self.currDepth
+		print self.depthPoint
+		if abs(self.depthPoint - self.currDepth) > 2:
+
+			global desired_orientation
+			self.yawPoint.data = desired_orientation
+			self.yawPoint_publisher.publish(self.yawPoint)
+			# Enable depth pid
+			self.yawEnable.data = True
+			self.yawPidEnable_publisher.publish(self.yawEnable)
 			
-
-		
-
-		if self.depth >= 18:
-
-			return 'ready'
-
-		
+			return 'notready'
 		else:
 
-			return 'notready'			
+			return 'ready'			
 
 
 
@@ -171,19 +169,23 @@ class ORIENTATION(smach.State):
 
         def __init__(self):
 
-                smach.State.__init__(self, outcomes=['continue','wait'])
+                smach.State.__init__(self, outcomes=['continue','wait', 'reset'])
 
 
 
                 # Publishers, Subscribers
 
-                self.reset_subscriber = rospy.Subscriber('/reset', Bool, self.reset_callback)
+                self.reset_subscriber 	= rospy.Subscriber('/reset', Bool, self.reset_callback)
+		self.curryaw_subscriber	= rospy.Subscriber('/yaw_control/state', Float64, self.yaw_callback)
+		
 
-
+		
 
                 # Local Variables
+		global desired_orientation
+		self.yawPoint = desired_orientation
 
-                self.timer = 0
+                self.orientation = 0
 
                 self.reset = False
 
@@ -193,22 +195,28 @@ class ORIENTATION(smach.State):
 
                 self.reset = msg.data
 
+	def yaw_callback(self,msg):
+
+		self.orientation = msg.data
+
 
 
         def execute(self, userdata):
 
 
-
-                self.timer += 1
-
                 if self.reset == True:
+			return 'reset'
 
-                        return 'begintracking'
+
+		elif (self.yawPoint - self.orientation) <= 0.5 :
+
+			                      
+			return 'continue'
 
                 
                 else:
 
-                        return 'fixorientation'
+                        return 'wait'
 
 
 
@@ -218,19 +226,37 @@ class TRACK(smach.State):
 
 	def __init__(self):
 
-		smach.State.__init__(self, outcomes=['area>90','track'])
+		smach.State.__init__(self, outcomes=['area>90','track', 'reset'])
 
 		
 
 		self.timer = 0
 
-	
+		self.reset_subscriber = rospy.Subscriber('/reset', Bool, self.reset_callback)
+
+
+
+                # Local Variables
+
+
+                self.reset = False
+
+
+
+        def reset_callback(self,msg):
+
+                self.reset = msg.data
 
 	def execute(self, userdata):
 
 		self.timer +=1
 
-		if self.timer > 20000:
+		if self.reset == True:
+			
+			return 'reset'
+			
+
+		elif self.timer > 20000:
 
 			return 'area>90'
 
@@ -244,19 +270,34 @@ class PASS(smach.State):
 
 	def __init__(self):
 
-		smach.State.__init__(self, outcomes=['timer','wait'])
+		smach.State.__init__(self, outcomes=['timer','wait', 'reset'])
 
 		
 
 		self.timer = 0
 
-	
+		self.reset_subscriber = rospy.Subscriber('/reset', Bool, self.reset_callback)
+
+
+                # Local Variables
+
+
+                self.reset = False
+
+	def reset_callback(self,msg):
+
+                self.reset = msg.data
 
 	def execute(self, userdata):
 
 		self.timer +=1
 
-		if self.timer > 20000:
+		if self.reset == True:
+
+			return 'reset'
+
+
+		elif self.timer > 20000:
 
 			return 'timer'
 
@@ -270,7 +311,7 @@ class SET_DEPTH(smach.State):
 
 	def __init__(self):
 
-		smach.State.__init__(self, outcomes=['depth','wait'])
+		smach.State.__init__(self, outcomes=['depth','wait', 'reset'])
 
 		
 
@@ -285,6 +326,18 @@ class SET_DEPTH(smach.State):
 		self.timer = 0
 
 		self.depth = 0
+	
+		self.reset_subscriber = rospy.Subscriber('/reset', Bool, self.reset_callback)
+
+
+                # Local Variables
+
+
+                self.reset = False
+
+	def reset_callback(self,msg):
+
+                self.reset = msg.data
 
 
 
@@ -296,11 +349,12 @@ class SET_DEPTH(smach.State):
 
 	def execute(self, userdata):
 
-			
+		if self.reset == True:
 
+			return 'reset'
 		
 
-		if self.depth >= 18:
+		elif self.depth >= 18:
 
 			return 'depth'
 
@@ -325,7 +379,7 @@ class COMPLETED(smach.State):
 
 	def execute(self, userdata):
 
-			
+		#reset hardware	
 
 		
 
@@ -333,6 +387,31 @@ class COMPLETED(smach.State):
 
 						
 
+
+
+class RESET(smach.State):
+
+	def __init__(self):
+
+		smach.State.__init__(self, outcomes=['restart'])
+
+		
+
+
+
+	
+
+	def execute(self, userdata):
+
+
+
+
+
+		return 'restart'
+
+
+
+		
 
 
 
@@ -382,23 +461,27 @@ def main():
 
 		smach.StateMachine.add('ORIENTATION', ORIENTATION(),
 
-					transitions={'wait':'ORIENTATION','continue':'TRACK',})	
+					transitions={'wait':'ORIENTATION','continue':'TRACK', 'reset':'RESET'})	
 
 		smach.StateMachine.add('TRACK',TRACK(),
 
-					transitions ={'area>90':'PASS','track':'TRACK'})
+					transitions ={'area>90':'PASS','track':'TRACK', 'reset':'RESET'})
 
 		smach.StateMachine.add('PASS',PASS(),
 
-					transitions ={'wait':'PASS','timer':'SET_DEPTH'})
+					transitions ={'wait':'PASS','timer':'SET_DEPTH', 'reset':'RESET'})
 
 		smach.StateMachine.add('SET_DEPTH',SET_DEPTH(),
 
-					transitions ={'depth':'COMPLETED','wait':'SET_DEPTH'})
+					transitions ={'depth':'COMPLETED','wait':'SET_DEPTH', 'reset':'RESET'})
 
 		smach.StateMachine.add('COMPLETED',COMPLETED(),
 
 					transitions ={'done':'task_complete'})
+
+		smach.StateMachine.add('RESET',RESET(),
+
+					transitions ={'restart':'INIT'})
 
 	# Execute State Machine
 
