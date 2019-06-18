@@ -24,7 +24,7 @@ class StartState(smach.State):
 
 class TrackBoardState(smach.State):
 	def __init__(self):
-		smach.State.__init__(self, outcomes=['completed', 'notcompleted'])
+		smach.State.__init__(self, outcomes=['completed', 'notcompleted', 'reset'])
 
 		self.object_x_subscriber = rospy.Subscriber('torpedo_x', Float64, self.object_x_callback)
 		self.object_y_subscriber = rospy.Subscriber('torpedo_y', Float64, self.object_y_callback)
@@ -72,6 +72,8 @@ class TrackBoardState(smach.State):
 		yaw_change = 2
 		area_threshold_low = 0.85
 		area_threshold_high = 0.90
+		depth_change = 1
+		foward_thrust_change = 1
 		
 		new_yaw = Float64()
 		new_depth = Float64()
@@ -103,36 +105,37 @@ class TrackBoardState(smach.State):
 		elif self.object_area > area_threshold_low:
 			new_forward_thrust.data = self.forward_thrust - forward_thrust_change
 			self.forward_thrust_publisher.publish(new_forward_thrust)
+		return 'notcompleted'
 
 class TrackHeartState(smach.State):
 	def __init__(self):
-		smach.State.__init__(self, outcomes=['completed', 'notcompleted'])
+		smach.State.__init__(self, outcomes=['completed', 'notcompleted', 'reset'])
 
-		self.object_x_subscriber = rospy.Subscriber('heart_x', Float64, self.object_x_callback)
-		self.object_y_subscriber = rospy.Subscriber('heart_y', Float64, self.object_y_callback)
-		self.object_area_subscriber = rospy.Subscriber('heart_area', Float64, self.object_area_callback)
+		#self.object_x_subscriber = rospy.Subscriber('heart_x', Float64, self.object_x_callback)
+		#self.object_y_subscriber = rospy.Subscriber('heart_y', Float64, self.object_y_callback)
+		#self.object_area_subscriber = rospy.Subscriber('heart_area', Float64, self.object_area_callback)
 		self.object_x = 0
 		self.object_y = 0
 		self.object_area = 0
 
 	def execute(self, userdata):
-		pass
+		return 'notcompleted'
 
 
 class ShootTorpedoState(smach.State):
 	def __init__(self):
-		smach.State.__init__(self, outcomes=['completed', 'notcompleted'])
+		smach.State.__init__(self, outcomes=['completed', 'notcompleted', 'reset'])
 
 	def execute(self, userdata):
-		pass
+		return 'notcompleted'
 
 
 class DepthChangeState(smach.State):
 	def __init__(self):
-		smach.State.__init__(self, outcomes=['completed', 'notcompleted'])
+		smach.State.__init__(self, outcomes=['completed', 'notcompleted', 'reset'])
 
 	def execute(self, userdata):
-		pass
+		return 'notcompleted'
 
 
 class EndState(smach.State):
@@ -140,17 +143,17 @@ class EndState(smach.State):
 		smach.State.__init__(self, outcomes=['completed', 'notcompleted'])
 
 	def execute(self, userdata):
-		pass
+		return 'notcompleted'
 
 class ResetState(smach.State):
 	def __init__(self):
-		smach.State.__init__(self, outcomes=['completed', 'notcompleted'])
+		smach.State.__init__(self, outcomes=['restart'])
 
 	def execute(self, userdata):
-		pass
+		return 'restart'
 
 
-def main:
+def main():
 	rospy.init_node('torpedo_task_state_machine')
 	sm = smach.StateMachine(outcomes=['torpedo_task_complete'])
 	sis = smach_ros.IntrospectionServer('server_name', sm, '/SM_ROOT')
@@ -163,7 +166,7 @@ def main:
 		smach.StateMachine.add('ShootTorpedoState', ShootTorpedoState(), transitions={'completed':'DepthChangeState', 'notcompleted':'ShootTorpedoState', 'reset':'ResetState'})
 		smach.StateMachine.add('DepthChangeState', DepthChangeState(), transitions={'completed':'EndState', 'notcompleted':'DepthChangeState', 'reset':'ResetState'})
 		smach.StateMachine.add('EndState', EndState(), transitions={'completed':'torpedo_task_complete', 'notcompleted':'EndState'})
-		smach.StateMachine.add('ResetState', EndState(), transitions={'reset':'StartState'})
+		smach.StateMachine.add('ResetState', ResetState(), transitions={'restart':'StartState'})
 
 	outcome = sm.execute()
 	rospy.spin()
