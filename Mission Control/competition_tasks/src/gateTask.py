@@ -66,6 +66,10 @@ depth_start = 18
 global desired_orientation
 desired_orientation = 90
 
+#amount of degrees to turn after track state
+global turn
+turn = 5
+
 ##------------------------- STATE DEFINITIONS -----------------------------------##
 
 
@@ -149,15 +153,16 @@ class DIVE(smach.State):
 		print self.depthPoint
 		if abs(self.depthPoint - self.currDepth) > 2:
 
+			
+			return 'notready'
+		else:
+
 			global desired_orientation
 			self.yawPoint.data = desired_orientation
 			self.yawPoint_publisher.publish(self.yawPoint)
 			# Enable depth pid
 			self.yawEnable.data = True
 			self.yawPidEnable_publisher.publish(self.yawEnable)
-			
-			return 'notready'
-		else:
 
 			return 'ready'			
 
@@ -229,23 +234,28 @@ class TRACK(smach.State):
 		smach.State.__init__(self, outcomes=['area>90','track', 'reset'])
 
 		
-
 		self.timer = 0
-
-		self.reset_subscriber = rospy.Subscriber('/reset', Bool, self.reset_callback)
-
+		#Subscribers and publishers
+		self.reset_subscriber   = rospy.Subscriber('/reset', Bool, self.reset_callback)
+		self.curryaw_subscriber = rospy.Subscriber('/yaw_control/state', Float64, self.yaw_callback) 
+		self.yawPoint_publisher = rospy.Publisher('/yaw_control/setpoint', Float64, queue_size=10) 
 
 
                 # Local Variables
 
-
+																			
                 self.reset = False
-
+		self.curryaw = 0 
+		self.yawPoint = Float64()	
 
 
         def reset_callback(self,msg):
 
                 self.reset = msg.data
+
+	def yaw_callback(self,msg):
+
+                self.curryaw = msg.data
 
 	def execute(self, userdata):
 
@@ -257,12 +267,68 @@ class TRACK(smach.State):
 			
 
 		elif self.timer > 20000:
-
+			
+			global turn
+			self.yawPoint.data = self.curryaw - turn
+			self.yawPoint_publisher.publish(self.yawPoint)
 			return 'area>90'
 
 		else: 
 
 			return 'track'
+
+
+class TURN(smach.State):
+
+	def __init__(self):
+
+		smach.State.__init__(self, outcomes=['pass','wait', 'reset'])
+
+		
+
+		#Subscribers and Publishers
+
+		self.reset_subscriber   = rospy.Subscriber('/reset', Bool, self.reset_callback)
+		self.curryaw_subscriber = rospy.Subscriber('/yaw_control/state', Float64, self.yaw_callback)
+		self.yawPoint_subscriber= rospy.Subscriber('/yaw_control/setpoint',Float64, self.yawPoint_callback)
+		
+ 
+
+                # Local Variables
+
+		self.currYaw = 0
+		
+		self.yawPoint = 0
+                self.reset = False
+
+	def reset_callback(self,msg):
+
+                self.reset = msg.data
+
+	def yaw_callback(self,msg):
+
+                self.currYaw = msg.data
+
+	def yawPoint_callback(self,msg):
+
+                self.yawPoint = msg.data
+
+	def execute(self, userdata):
+		print self.currYaw
+		
+
+		if self.reset == True:
+
+			return 'reset'
+
+
+		elif abs(self.yawPoint - self.currYaw) < 0.5:
+
+			return 'pass'
+
+		else: 
+
+			return 'wait'
 
 
 
@@ -465,7 +531,10 @@ def main():
 
 		smach.StateMachine.add('TRACK',TRACK(),
 
-					transitions ={'area>90':'PASS','track':'TRACK', 'reset':'RESET'})
+					transitions ={'area>90':'TURN','track':'TRACK', 'reset':'RESET'})
+
+		smach.StateMachine.add('TURN', TURN(),
+					transitions ={'reset':'RESET', 'pass':'PASS', 'wait':'TURN'})
 
 		smach.StateMachine.add('PASS',PASS(),
 
