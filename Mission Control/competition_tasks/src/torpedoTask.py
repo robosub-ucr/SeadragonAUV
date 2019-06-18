@@ -6,20 +6,12 @@ import smach
 import smach_ros
 from std_msgs.msg import Bool, Float64, Int16
 
-global ABC
-ABC = 20
-
 class StartState(smach.State):
 	def __init__(self):
 		smach.State.__init__(self, outcomes=['ready', 'notready'])
 
 		self.torpedo_task_subscriber = rospy.Subscriber('/torpedo_enable', Bool, self.torpedo_task_callback)
 		self.torpedoEnabled = False
-
-		self.XXXX_subscriber = rospy.Subscriber('/yaw_control/state', Float64, self.XXXX_callback) # get current orientation
-		self.XXXX_publisher = rospy.Publisher('/yaw_control/setpoint', Float64, queue_size=10)
-		self.XXXX = Float64()
-		self.XXXX.data = 0.0
 
 	def torpedo_task_callback(self, msg):
 		self.torpedoEnabled = msg.data
@@ -35,7 +27,7 @@ class TrackBoardState(smach.State):
 		smach.State.__init__(self, outcomes=['completed', 'notcompleted'])
 
 		self.object_x_subscriber = rospy.Subscriber('torpedo_x', Float64, self.object_x_callback)
-		self.object_y_subscriber = rospy.Subscriber('torpedo_y', Float64, self.object_x_callback)
+		self.object_y_subscriber = rospy.Subscriber('torpedo_y', Float64, self.object_y_callback)
 		self.object_area_subscriber = rospy.Subscriber('torpedo_area', Float64, self.object_area_callback)
 		self.object_x = 0
 		self.object_y = 0
@@ -115,6 +107,13 @@ class TrackBoardState(smach.State):
 class TrackHeartState(smach.State):
 	def __init__(self):
 		smach.State.__init__(self, outcomes=['completed', 'notcompleted'])
+
+		self.object_x_subscriber = rospy.Subscriber('heart_x', Float64, self.object_x_callback)
+		self.object_y_subscriber = rospy.Subscriber('heart_y', Float64, self.object_y_callback)
+		self.object_area_subscriber = rospy.Subscriber('heart_area', Float64, self.object_area_callback)
+		self.object_x = 0
+		self.object_y = 0
+		self.object_area = 0
 
 	def execute(self, userdata):
 		pass
