@@ -11,7 +11,7 @@ class init(smach.State):
     def __init__(self):
         smach.State.__init__(self, outcomes=['ready','notready'])
 	
-	self.currYaw_subscriber       = rospy.Subscriber('/yaw_control/state', Float64, self.yaw_callback)
+	
 	self.yawPoint_publisher       = rospy.Publisher('/yaw_control/setpoint', Float64, queue_size=10)
 	self.yawPoint = Float64()
 	self.yawPoint.data = 0.0
