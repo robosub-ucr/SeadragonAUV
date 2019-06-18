@@ -70,6 +70,10 @@ desired_orientation = 90
 global turn
 turn = 5
 
+#depth for the buoys
+global buoy_depth
+buoy_depth = 36 #inches
+
 ##------------------------- STATE DEFINITIONS -----------------------------------##
 
 
@@ -340,15 +344,20 @@ class PASS(smach.State):
 
 		
 
-		self.timer = 0
+		
 
-		self.reset_subscriber = rospy.Subscriber('/reset', Bool, self.reset_callback)
+		self.reset_subscriber    = rospy.Subscriber('/reset', Bool, self.reset_callback)
+		self.fwdThrust_publisher = rospy.Publisher('/yaw_pwm', Int16, queue_size=10)
+		self.depthPoint_publisher= rospy.Publisher('/depth_control/setpoint', Float64, queue_size=10)
+		
 
 
                 # Local Variables
-
-
+		self.fwdThrust = Int16()
+		self.fwdThrust.data = 0
+		self.timer = 0
                 self.reset = False
+		self.depthPoint = Float64()
 
 	def reset_callback(self,msg):
 
@@ -357,14 +366,22 @@ class PASS(smach.State):
 	def execute(self, userdata):
 
 		self.timer +=1
+		if self.timer % 200 == 0:
+			if self.fwdThrust.data < 280:
+				self.fwdThrust.data += 1
+				self.fwdThrust_publisher.publish(self.fwdThrust)
 
 		if self.reset == True:
 
 			return 'reset'
 
 
-		elif self.timer > 20000:
-
+		elif self.timer > 40000:
+			self.fwdThrust.data = 0
+			self.fwdThrust_publisher.publish(self.fwdThrust)
+			global buoy_depth
+			self.depthPoint.data = buoy_depth
+			self.depthPoint_publisher.publish(self.depthPoint)
 			return 'timer'
 
 		else: 
@@ -384,16 +401,16 @@ class SET_DEPTH(smach.State):
 		# Publishers, Subscribers
 
 		self.depth_subscriber = rospy.Subscriber('/depth', Bool, self.depth_callback) 
-
+		self.reset_subscriber = rospy.Subscriber('/reset', Bool, self.reset_callback)
 		
 
 		# Local Variables
 
-		self.timer = 0
+		
 
 		self.depth = 0
-	
-		self.reset_subscriber = rospy.Subscriber('/reset', Bool, self.reset_callback)
+		self.depthPoint = 0
+		
 
 
                 # Local Variables
@@ -414,13 +431,15 @@ class SET_DEPTH(smach.State):
 
 
 	def execute(self, userdata):
+		global buoy_depth
+		self.depthPoint = buoy_depth 
 
 		if self.reset == True:
 
 			return 'reset'
 		
 
-		elif self.depth >= 18:
+		elif abs(self.depth - self.depthPoint) < 2:
 
 			return 'depth'
 
@@ -439,6 +458,7 @@ class COMPLETED(smach.State):
 
 		
 
+		self.taskComplete_publisher = rospy.Publisher('/task_complete', Bool, queue_size=10)
 		
 
 
@@ -446,8 +466,8 @@ class COMPLETED(smach.State):
 	def execute(self, userdata):
 
 		#reset hardware	
-
-		
+		taskComplete = True
+		self.taskComplete_publisher.publish(taskComplete)
 
 		return 'done'
 
@@ -546,7 +566,7 @@ def main():
 
 		smach.StateMachine.add('COMPLETED',COMPLETED(),
 
-					transitions ={'done':'task_complete'})
+					transitions ={'done':'INIT'})
 
 		smach.StateMachine.add('RESET',RESET(),
 
