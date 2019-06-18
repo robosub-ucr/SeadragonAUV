@@ -15,6 +15,13 @@ from std_msgs.msg import Bool, Float64, Int16
 
 ##------------------------- STATE DEFINITIONS -----------------------------------##
 
+from enum import Enum
+class Task(Enum):
+	GATE = 0
+	BOUY = 1
+	TORPEDO = 2
+	DUMMY = 3
+
 # Define State idle
 
 class idle(smach.State):
@@ -187,7 +194,7 @@ class execute(smach.State):
 		self.torpedo_publisher	 = rospy.Publisher('/torpedo_enable', Bool, queue_size=1)
 
 		# Local variables	
-		self.task	  = 0
+		self.task	  = Task.GATE
 		self.taskEnabled  = False
 		self.taskComplete = False	
 		self.resetDepth   = 0
@@ -207,21 +214,21 @@ class execute(smach.State):
 	def execute(self, userdata):
 
 		# Actions
-		if self.task == 0 and self.taskEnabled == False:
+		if self.task == Task.GATE and self.taskEnabled == False:
 
 			# Enable Gate Task
 			self.enable.data = True
 			self.gate_publisher.publish(self.enable)
 			self.taskEnabled = True
 
-		elif self.task == 1 and self.taskEnabled == False:
+		elif self.task == Task.BOUY and self.taskEnabled == False:
 
 			# Enable Buoy Task
 			self.enable.data = True
 			self.buoy_publisher.publish(self.enable)
 			self.taskEnabled = True
 
-		elif self.task == 2 and self.taskEnabled == False:
+		elif self.task == Task.TORPEDO and self.taskEnabled == False:
 
 			# Enable Torpedo Task
 			self.enable.data = True
@@ -234,7 +241,7 @@ class execute(smach.State):
 			self.taskEnabled  = False
 			self.taskComplete = False
 			self.resetDepth	  = 0
-			self.task	  = 0
+			self.task	  = Task.GATE
 			return 'reset'
 
 		elif self.taskComplete == True:
@@ -242,7 +249,7 @@ class execute(smach.State):
 			self.taskEnabled  = False
 			self.enable.data  = False
 			self.taskComplete = False
-			self.task 	 = 3	 # Dummy number to prevent previous task from starting again
+			self.task 	 = Task.DUMMY	 # Dummy number to prevent previous task from starting again
 			return 'taskcomplete'
 
 		else: 

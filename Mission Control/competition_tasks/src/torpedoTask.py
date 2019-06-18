@@ -80,6 +80,7 @@ class TrackBoardState(smach.State):
 		yaw_change = 2
 		area_threshold_low = 0.85
 		area_threshold_high = 0.90
+		
 		new_yaw = Float64()
 		new_depth = Float64()
 		new_forward_thrust = Int16()
@@ -158,11 +159,12 @@ def main:
 
 	with sm:
 		smach.StateMachine.add('StartState', StartState(), transitions={'ready':'TrackBoardState', 'notready':'StartState'})
-		smach.StateMachine.add('TrackBoardState', TrackBoardState(), transitions={'completed':'TrackHeartState', 'notcompleted':'TrackBoardState'})
-		smach.StateMachine.add('TrackHeartState', TrackHeartState(), transitions={'completed':'ShootTorpedoState', 'notcompleted':'TrackHeartState'})
-		smach.StateMachine.add('ShootTorpedoState', ShootTorpedoState(), transitions={'completed':'DepthChangeState', 'notcompleted':'ShootTorpedoState'})
-		smach.StateMachine.add('DepthChangeState', DepthChangeState(), transitions={'completed':'EndState', 'notcompleted':'DepthChangeState'})
-		smach.StateMachine.add('EndState', EndState(), transitions={'completed':'????', 'notcompleted':'EndState'})
+		smach.StateMachine.add('TrackBoardState', TrackBoardState(), transitions={'completed':'TrackHeartState', 'notcompleted':'TrackBoardState', 'reset':'ResetState'})
+		smach.StateMachine.add('TrackHeartState', TrackHeartState(), transitions={'completed':'ShootTorpedoState', 'notcompleted':'TrackHeartState', 'reset':'ResetState'})
+		smach.StateMachine.add('ShootTorpedoState', ShootTorpedoState(), transitions={'completed':'DepthChangeState', 'notcompleted':'ShootTorpedoState', 'reset':'ResetState'})
+		smach.StateMachine.add('DepthChangeState', DepthChangeState(), transitions={'completed':'EndState', 'notcompleted':'DepthChangeState', 'reset':'ResetState'})
+		smach.StateMachine.add('EndState', EndState(), transitions={'completed':'torpedo_task_complete', 'notcompleted':'EndState'})
+		smach.StateMachine.add('ResetState', EndState(), transitions={'reset':'StartState'})
 
 	outcome = sm.execute()
 	rospy.spin()
