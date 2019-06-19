@@ -52,6 +52,7 @@ class TrackObjectState(smach.State):
 		self.depth_current = 0 # in inches
 
 		self.forward_thrust_publisher	= rospy.Publisher('/yaw_pwm', Int16, queue_size=10)
+		self.forward_thrust = 0
 
 	def object_x_callback(self, msg):
 		self.object_x = msg.data
@@ -115,16 +116,22 @@ class TrackObjectState(smach.State):
 		# move forward/backward until object area is within threshold
 		new_forward_thrust = Int16() # 0 to 280
 		if self.object_area < AREA_THRESHOLD_LOW:
-			new_forward_thrust.data = self.forward_thrust + FORWARD_THRUST_INCREASE
+			self.forward_thrust = self.forward_thrust + FORWARD_THRUST_INCREASE
+
+			new_forward_thrust.data = self.forward_thrust
 			self.forward_thrust_publisher.publish(new_forward_thrust)
 			return False
 		elif self.object_area > AREA_THRESHOLD_HIGH:
 			is_object_area_in_threshold = False
-			new_forward_thrust.data = self.forward_thrust - FORWARD_THRUST_INCREASE
+			self.forward_thrust = self.forward_thrust - FORWARD_THRUST_INCREASE
+			new_forward_thrust.data = self.forward_thrust
 			self.forward_thrust_publisher.publish(new_forward_thrust)
 			return False
 		else:
 			return True
+
+	def change_forward_thrust(self, amount):
+		pass
 
 	def resetValues(self):
 			self.object_x = 0
