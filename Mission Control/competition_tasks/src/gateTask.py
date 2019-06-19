@@ -74,6 +74,10 @@ turn = 5
 global buoy_depth
 buoy_depth = 36 #inches
 
+#time to pass gate
+global gate_timer
+gate_timer = 40000
+
 ##------------------------- STATE DEFINITIONS -----------------------------------##
 
 
@@ -132,7 +136,7 @@ class DIVE(smach.State):
 
 	def __init__(self):
 
-		smach.State.__init__(self, outcomes=['ready','notready'])
+		smach.State.__init__(self, outcomes=['ready','notready', 'reset'])
 	
 		self.currDepth_subscriber	= rospy.Subscriber('/depth', Int16, self.depth_callback)
 		self.currDepth      = 0
@@ -144,10 +148,15 @@ class DIVE(smach.State):
 	
 		self.yawPidEnable_publisher = rospy.Publisher('/yaw_control/pid_enable', Bool, queue_size=10)
 		self.yawEnable = Bool()
+
+		self.reset_subscriber = rospy.Subscriber('/reset', Bool, self.reset_callback)
+		self.reset = False 
 	
 	def depth_callback(self, msg):
-		self.currDepth      = msg.data
+		self.currDepth = msg.data
 
+	def reset_callback(self, msg):
+		self.reset = msg.data
 
 
 	def execute(self, userdata):
@@ -155,6 +164,11 @@ class DIVE(smach.State):
 		rospy.loginfo('Executing state dive')
 		print self.currDepth
 		print self.depthPoint
+
+		if self.reset == False:
+
+			return 'reset'
+
 		if abs(self.depthPoint - self.currDepth) > 2:
 
 			
@@ -244,37 +258,77 @@ class TRACK(smach.State):
 		self.curryaw_subscriber = rospy.Subscriber('/yaw_control/state', Float64, self.yaw_callback) 
 		self.yawPoint_publisher = rospy.Publisher('/yaw_control/setpoint', Float64, queue_size=10) 
 
+		self.gate_x_subscriber = rospy.Subscriber('/gate_x', Float64, self.gate_x_callback)
+		self.gate_area_subscriber = rospy.Subscriber('/gate_area', Float64, self.gate_area_callback)
+		self.gate_x = 0
+		self.gate_area = 0.0
 
+		self.forward_thrust_publisher	= rospy.Publisher('/yaw_pwm', Int16, queue_size=10)
+		self.forward_thrust = 0
                 # Local Variables
 
 																			
                 self.reset = False
 		self.curryaw = 0 
-		self.yawPoint = Float64()	
+		self.yawPoint = Float64()
+		self.new_forward_thrust = Int16()	
 
 
         def reset_callback(self,msg):
 
                 self.reset = msg.data
 
+	def gate_x_callback(self, msg):
+		self.gate_x = msg.data
+
+	def gate_area_callback(self, msg):
+		self.gate_area = msg.data
+
 	def yaw_callback(self,msg):
 
-                self.curryaw = msg.data
+                self.currYaw = msg.data
 
 	def execute(self, userdata):
 
-		self.timer +=1
-
 		if self.reset == True:
-			
+			self.timer = 0
 			return 'reset'
-			
 
-		elif self.timer > 20000:
-			
+		camera_width = 400
+		camera_height = 300
+		padding_x = 5
+		yaw_change = 2
+		area_threshold_low = 0.85
+		area_threshold_high = 0.90
+		new_yaw = Float64()
+		
+		
+		#center the object for x-axis
+		if self.gate_x > camera_width/2 + padding_x:
+			new_yaw.data = self.currYaw - yaw_change
+			self.yawPoint_publisher.publish(new_yaw)
+			self.forward_thrust = 0
+			self.forward_thrust_publisher.publish(self.forward_thrust)
+
+		elif self.gate_x < camera_width/2 - padding_x:
+			new_yaw.data = self.currYaw + yaw_change
+			self.yawPoint_publisher.publish(new_yaw)
+			self.forward_thrust = 0
+			self.forward_thrust_publisher.publish(self.forward_thrust)
+		else:
+			self.timer +=1
+			if self.timer % 200 == 0:
+				if self.forward_thrust < 280:
+					self.forward_thrust += 1
+					self.forward_thrust_publisher.publish(self.forward_thrust)
+
+		if self.gate_area/(camera_width*camera_height) > area_threshold_low and self.gate_area/(camera_width*camera_height) < area_threshold_high:
 			global turn
-			self.yawPoint.data = self.curryaw - turn
+			self.yawPoint.data = self.currYaw - turn
 			self.yawPoint_publisher.publish(self.yawPoint)
+			self.forward_thrust = 0
+			self.forward_thrust_publisher.publish(self.forward_thrust)
+			self.timer = 0
 			return 'area>90'
 
 		else: 
@@ -364,7 +418,7 @@ class PASS(smach.State):
                 self.reset = msg.data
 
 	def execute(self, userdata):
-
+		global gate_timer
 		self.timer +=1
 		if self.timer % 200 == 0:
 			if self.fwdThrust.data < 280:
@@ -372,16 +426,17 @@ class PASS(smach.State):
 				self.fwdThrust_publisher.publish(self.fwdThrust)
 
 		if self.reset == True:
-
+			self.timer = 0
 			return 'reset'
 
-
-		elif self.timer > 40000:
+		
+		elif self.timer > gate_timer:
 			self.fwdThrust.data = 0
 			self.fwdThrust_publisher.publish(self.fwdThrust)
 			global buoy_depth
 			self.depthPoint.data = buoy_depth
 			self.depthPoint_publisher.publish(self.depthPoint)
+			self.timer = 0
 			return 'timer'
 
 		else: 
@@ -465,7 +520,7 @@ class COMPLETED(smach.State):
 
 	def execute(self, userdata):
 
-		#reset hardware	
+		
 		taskComplete = True
 		self.taskComplete_publisher.publish(taskComplete)
 
@@ -543,7 +598,7 @@ def main():
 
 		smach.StateMachine.add('DIVE', DIVE(),
 
-					transitions={'notready':'DIVE','ready':'ORIENTATION'})
+					transitions={'notready':'DIVE','ready':'ORIENTATION', 'reset':'RESET'})
 
 		smach.StateMachine.add('ORIENTATION', ORIENTATION(),
 
