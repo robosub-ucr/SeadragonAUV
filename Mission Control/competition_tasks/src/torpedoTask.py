@@ -102,11 +102,11 @@ class TrackObjectState(smach.State):
 		# change depth until y is within center +/- padding
 		new_depth = Float64() # 0 to 60 inches
 		if self.object_y > CAMERA_HEIGHT/2 + PADDING_Y:
-			new_depth.data = self.depth_current + DEPTH_INCREASE
+			new_depth.data = self.depth_current - DEPTH_INCREASE
 			self.depth_publisher.publish(new_depth)
 			return False
 		elif self.object_y < CAMERA_HEIGHT/2 - PADDING_Y:
-			new_depth.data = self.depth_current - DEPTH_INCREASE
+			new_depth.data = self.depth_current + DEPTH_INCREASE
 			self.depth_publisher.publish(new_depth)
 			return False
 		else:
@@ -115,13 +115,12 @@ class TrackObjectState(smach.State):
 	def adjust_position(self):
 		# move forward/backward until object area is within threshold
 		new_forward_thrust = Int16() # 0 to 280
-		if self.object_area/CAMERA_WIDTH*CAMERA_HEIGHT < AREA_THRESHOLD_LOW:
+		if self.object_area/(CAMERA_WIDTH*CAMERA_HEIGHT) < AREA_THRESHOLD_LOW:
 			self.forward_thrust = self.forward_thrust + FORWARD_THRUST_INCREASE
-
 			new_forward_thrust.data = self.forward_thrust
 			self.forward_thrust_publisher.publish(new_forward_thrust)
 			return False
-		elif self.object_area/CAMERA_WIDTH*CAMERA_HEIGHT > AREA_THRESHOLD_HIGH:
+		elif self.object_area/(CAMERA_WIDTH*CAMERA_HEIGHT) > AREA_THRESHOLD_HIGH:
 			self.forward_thrust = self.forward_thrust - FORWARD_THRUST_INCREASE
 			new_forward_thrust.data = self.forward_thrust
 			self.forward_thrust_publisher.publish(new_forward_thrust)
@@ -150,7 +149,7 @@ class ShootTorpedoState(smach.State):
 		shoot = Bool()
 		shoot.data = True
 		self.torpedo_shoot_publisher.publish(shoot)
-		return 'notcompleted'
+		return 'completed'
 
 
 def main():
