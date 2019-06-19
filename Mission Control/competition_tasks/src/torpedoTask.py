@@ -20,15 +20,15 @@ TORPEDO_Y_OFFSET = 10
 class StartState(smach.State):
 	def __init__(self):
 		smach.State.__init__(self, outcomes=['ready', 'notready', 'reset'])
-
-		self.torpedo_task_subscriber = rospy.Subscriber('/torpedo_enable', Bool, self.torpedo_task_callback)
 		self.torpedoEnabled = False
+		self.torpedo_task_subscriber = rospy.Subscriber('/torpedo_enable', Bool, lambda msg: self.torpedoEnabled = msg.data)
 
-	def torpedo_task_callback(self, msg):
-		self.torpedoEnabled = msg.data
+	# def torpedo_task_callback(self, msg):
+	# 	self.torpedoEnabled = msg.data
 
 	def execute(self, userdata):
 		if self.torpedoEnabled:
+			self.torpedoEnabled = False
 			return 'ready'
 		else:
 			return 'notready'
@@ -54,6 +54,9 @@ class TrackObjectState(smach.State):
 
 		self.forward_thrust_publisher	= rospy.Publisher('/yaw_pwm', Int16, queue_size=10)
 
+		self.has_reset = False
+		rospy.Subscriber('/reset', Bool, lambda msg: self.has_reset = msg.data)
+
 	def object_x_callback(self, msg):
 		self.object_x = msg.data
 
@@ -70,6 +73,9 @@ class TrackObjectState(smach.State):
 		self.depth_current = msg.data
 
 	def execute(self, userdata):
+		if self.has_reset:
+			return 'reset'
+
 		is_object_x_centered = self.adjust_yaw() 
 		is_object_y_centered = self.adjust_depth()
 
