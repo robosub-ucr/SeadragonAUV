@@ -36,9 +36,9 @@ class TrackObjectState(smach.State):
 	def __init__(self, obj_topic):
 		smach.State.__init__(self, outcomes=['completed', 'notcompleted'])
 
-		self.object_x_subscriber = rospy.Subscriber(obj_topic.x, Float64, self.object_x_callback)
-		self.object_y_subscriber = rospy.Subscriber(obj_topic.y, Float64, self.object_y_callback)
-		self.object_area_subscriber = rospy.Subscriber(obj_topic.area, Float64, self.object_area_callback)
+		self.object_x_subscriber = rospy.Subscriber(obj_topic['x'], Float64, self.object_x_callback)
+		self.object_y_subscriber = rospy.Subscriber(obj_topic['y'], Float64, self.object_y_callback)
+		self.object_area_subscriber = rospy.Subscriber(obj_topic['area'], Float64, self.object_area_callback)
 		self.object_x = 0 # in pixels
 		self.object_y = 0
 		self.object_area = 0 # percentage
