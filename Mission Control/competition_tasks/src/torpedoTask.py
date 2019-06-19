@@ -115,14 +115,13 @@ class TrackObjectState(smach.State):
 	def adjust_position(self):
 		# move forward/backward until object area is within threshold
 		new_forward_thrust = Int16() # 0 to 280
-		if self.object_area < AREA_THRESHOLD_LOW:
+		if self.object_area/CAMERA_WIDTH*CAMERA_HEIGHT < AREA_THRESHOLD_LOW:
 			self.forward_thrust = self.forward_thrust + FORWARD_THRUST_INCREASE
 
 			new_forward_thrust.data = self.forward_thrust
 			self.forward_thrust_publisher.publish(new_forward_thrust)
 			return False
-		elif self.object_area > AREA_THRESHOLD_HIGH:
-			is_object_area_in_threshold = False
+		elif self.object_area/CAMERA_WIDTH*CAMERA_HEIGHT > AREA_THRESHOLD_HIGH:
 			self.forward_thrust = self.forward_thrust - FORWARD_THRUST_INCREASE
 			new_forward_thrust.data = self.forward_thrust
 			self.forward_thrust_publisher.publish(new_forward_thrust)
