@@ -6,6 +6,16 @@ import smach
 import smach_ros
 from std_msgs.msg import Bool, Float64, Int16
 
+CAMERA_WIDTH = 400
+CAMERA_HEIGHT = 300
+PADDING_X = 5
+PADDING_Y = 5
+YAW_INCREASE = 1
+DEPTH_INCREASE = 1
+FORWARD_THRUST_INCREASE = 1
+AREA_THRESHOLD_LOW = 0.85
+AREA_THRESHOLD_HIGH = 0.90
+
 class StartState(smach.State):
 	def __init__(self):
 		smach.State.__init__(self, outcomes=['ready', 'notready'])
@@ -22,20 +32,16 @@ class StartState(smach.State):
 		else:
 			return 'notready'
 
-class TrackBoardState(smach.State):
-	def __init__(self):
+class TrackObjectState(smach.State):
+	def __init__(self, obj_topic):
 		smach.State.__init__(self, outcomes=['completed', 'notcompleted'])
 
-		self.object_x_subscriber = rospy.Subscriber('/torpedo_board_x', Float64, self.object_x_callback)
-		self.object_y_subscriber = rospy.Subscriber('/torpedo_board_y', Float64, self.object_y_callback)
-		self.object_area_subscriber = rospy.Subscriber('/torpedo_board_area', Float64, self.object_area_callback)
-		self.object_x = 0
+		self.object_x_subscriber = rospy.Subscriber(obj_topic.x, Float64, self.object_x_callback)
+		self.object_y_subscriber = rospy.Subscriber(obj_topic.y, Float64, self.object_y_callback)
+		self.object_area_subscriber = rospy.Subscriber(obj_topic.area, Float64, self.object_area_callback)
+		self.object_x = 0 # in pixels
 		self.object_y = 0
-		self.object_area = 0
-
-		#self.forward_thrust_subscriber	= rospy.Subscriber('/yaw_pwm', Int16, self.forward_thrust_callback)
-		self.forward_thrust_publisher	= rospy.Publisher('/yaw_pwm', Int16, queue_size=10)
-		self.forward_thrust = 0
+		self.object_area = 0 # percentage
 
 		self.yaw_current_subscriber = rospy.Subscriber('/yaw_control/state', Float64, self.yaw_callback) # current orientation
 		self.yaw_setpoint_publisher = rospy.Publisher('yaw_control/setpoint', Float64, queue_size=10) # desired orientation
@@ -44,6 +50,8 @@ class TrackBoardState(smach.State):
 		self.depth_subscriber = rospy.Subscriber('/depth_control/state', Float64, self.depth_callback)
 		self.depth_publisher = rospy.Publisher('/depth_control/setpoint', Float64, queue_size=10)
 		self.depth_current = 0 # in inches
+
+		self.forward_thrust_publisher	= rospy.Publisher('/yaw_pwm', Int16, queue_size=10)
 
 	def object_x_callback(self, msg):
 		self.object_x = msg.data
@@ -54,9 +62,6 @@ class TrackBoardState(smach.State):
 	def object_area_callback(self, msg):
 		self.object_area = msg.data
 
-	def forward_thrust_callback(self, msg):
-		self.forward_thrust = msg.data
-
 	def yaw_callback(self, msg):
 		self.yaw_current = msg.data
 
@@ -64,196 +69,210 @@ class TrackBoardState(smach.State):
 		self.depth_current = msg.data
 
 	def execute(self, userdata):
-		
-		camera_width = 400
-		camera_height = 300
-		padding_x = 5
-		padding_y = 5
-		yaw_change = 2
-		area_threshold_low = 0.85
-		area_threshold_high = 0.90
-		depth_change = 1
-		foward_thrust_change = 1
+		is_object_x_centered = self.adjust_yaw() 
+		is_object_y_centered = self.adjust_depth() 
+		is_object_area_in_threshold = self.adjust_position() 
 
-		is_object_x_centered = False
-		is_object_y_centered = False
-		is_object_area_in_threshold = False
-		
-		new_yaw = Float64()
-		new_depth = Float64()
-		new_forward_thrust = Int16()
-
-		# rotate yaw until x is within center
-		if self.object_x > camera_width/2 + padding_x:
-			is_object_x_centered = False
-			new_yaw.data = self.yaw_current - yaw_change
-			self.yaw_setpoint_publisher.publish(new_yaw)
-		elif self.object_x < camera_width/2 - padding_x:
-			is_object_x_centered = False
-			new_yaw.data = self.yaw_current + yaw_change
-			self.yaw_setpoint_publisher.publish(new_yaw)
-		else:
-			is_object_x_centered = True
-
-		# change depth until y is within center
-		if self.object_y > camera_height/2 + padding_y:
-			is_object_y_centered = False
-			new_depth.data = self.depth_current + depth_change
-			self.depth_publisher.publish(new_depth)
-		elif self.object_y < camera_height/2 - padding_y:
-			is_object_y_centered = False
-			new_depth.data = self.depth_current - depth_change
-			self.depth_publisher.publish(new_depth)
-		else:
-			is_object_y_centered = True
-
-		# move forward/backward until object area is 90%
-		if self.object_area < area_threshold_low:
-			is_object_area_in_threshold = False
-			new_forward_thrust.data = self.forward_thrust + forward_thrust_change
-			self.forward_thrust_publisher.publish(new_forward_thrust)
-		elif self.object_area > area_threshold_low:
-			is_object_area_in_threshold = False
-			new_forward_thrust.data = self.forward_thrust - forward_thrust_change
-			self.forward_thrust_publisher.publish(new_forward_thrust)
-		else:
-			is_object_area_in_threshold = True
-
-		# go to next state if all object is at center of camera and within certain distace
-		if is_object_x_centered and is_object_y_centered and is_object_area_in_threshold:
-			return 'completed'
-		else:
-			return 'notcompleted'
-
-class TrackHeartState(smach.State):
-	def __init__(self):
-		smach.State.__init__(self, outcomes=['completed', 'notcompleted'])
-
-		self.object_x_subscriber = rospy.Subscriber('/torpedo_heart_x', Float64, self.object_x_callback)
-		self.object_y_subscriber = rospy.Subscriber('/torpedo_heart_y', Float64, self.object_y_callback)
-		self.object_area_subscriber = rospy.Subscriber('/torpedo_heart_area', Float64, self.object_area_callback)
-		self.object_x = 0
-		self.object_y = 0
-		self.object_area = 0
-
-		#self.forward_thrust_subscriber	= rospy.Subscriber('/yaw_pwm', Int16, self.forward_thrust_callback)
-		self.forward_thrust_publisher	= rospy.Publisher('/yaw_pwm', Int16, queue_size=10)
-		self.forward_thrust = 0
-
-		self.yaw_current_subscriber = rospy.Subscriber('/yaw_control/state', Float64, self.yaw_callback) # current orientation
-		self.yaw_setpoint_publisher = rospy.Publisher('yaw_control/setpoint', Float64, queue_size=10) # desired orientation
-		self.yaw_current = 0 # in degrees
-
-		self.depth_subscriber = rospy.Subscriber('/depth_control/state', Float64, self.depth_callback)
-		self.depth_publisher = rospy.Publisher('/depth_control/setpoint', Float64, queue_size=10)
-		self.depth_current = 0 # in inches
-
-	def execute(self, userdata):
-		
-		camera_width = 400
-		camera_height = 300
-		padding_x = 3
-		padding_y = 3
-		yaw_change = 2
-		area_threshold_low = 0.85
-		area_threshold_high = 0.90
-		depth_change = 1
-		foward_thrust_change = 1
-
-		is_object_x_centered = False
-		is_object_y_centered = False
-		is_object_area_in_threshold = False
-		
-		new_yaw = Float64()
-		new_depth = Float64()
-		new_forward_thrust = Int16()
-
-		# rotate yaw until x is within center
-		if self.object_x > camera_width/2 + padding_x:
-			is_object_x_centered = False
-			new_yaw.data = self.yaw_current - yaw_change
-			self.yaw_setpoint_publisher.publish(new_yaw)
-		elif self.object_x < camera_width/2 - padding_x:
-			is_object_x_centered = False
-			new_yaw.data = self.yaw_current + yaw_change
-			self.yaw_setpoint_publisher.publish(new_yaw)
-		else:
-			is_object_x_centered = True
-
-		# change depth until y is within center
-		if self.object_y > camera_height/2 + padding_y:
-			is_object_y_centered = False
-			new_depth.data = self.depth_current + depth_change
-			self.depth_publisher.publish(new_depth)
-		elif self.object_y < camera_height/2 - padding_y:
-			is_object_y_centered = False
-			new_depth.data = self.depth_current - depth_change
-			self.depth_publisher.publish(new_depth)
-		else:
-			is_object_y_centered = True
-
-		# move forward/backward until object area is 90%
-		if self.object_area < area_threshold_low:
-			is_object_area_in_threshold = False
-			new_forward_thrust.data = self.forward_thrust + forward_thrust_change
-			self.forward_thrust_publisher.publish(new_forward_thrust)
-		elif self.object_area > area_threshold_low:
-			is_object_area_in_threshold = False
-			new_forward_thrust.data = self.forward_thrust - forward_thrust_change
-			self.forward_thrust_publisher.publish(new_forward_thrust)
-		else:
-			is_object_area_in_threshold = True
-
-		# go to next state if all object is at center of camera and within certain distace
+		# go to next state if the object is at the center of the camera frame and within certain distace of the submarine
 		if is_object_x_centered and is_object_y_centered and is_object_area_in_threshold:
 			self.resetValues()
 			return 'completed'
 		else:
 			return 'notcompleted'
 
+	def adjust_yaw(self):
+		# rotate yaw until x is within center +/- padding
+		new_yaw = Float64() # 0 to 180 degrees (counterclockwise) or -180 degrees (clockwise)
+		if self.object_x > CAMERA_WIDTH/2 + PADDING_X:
+			new_yaw.data = self.yaw_current - YAW_INCREASE
+			self.yaw_setpoint_publisher.publish(new_yaw)
+			return False
+		elif self.object_x < CAMERA_WIDTH/2 - PADDING_X:
+			new_yaw.data = self.yaw_current + YAW_INCREASE
+			self.yaw_setpoint_publisher.publish(new_yaw)
+			return False
+		else:
+			return True
+
+	def adjust_depth(self):
+		# change depth until y is within center +/- padding
+		new_depth = Float64() # 0 to 60 inches
+		if self.object_y > CAMERA_HEIGHT/2 + PADDING_Y:
+			new_depth.data = self.depth_current + DEPTH_INCREASE
+			self.depth_publisher.publish(new_depth)
+			return False
+		elif self.object_y < CAMERA_HEIGHT/2 - PADDING_Y:
+			new_depth.data = self.depth_current - DEPTH_INCREASE
+			self.depth_publisher.publish(new_depth)
+			return False
+		else:
+			return True
+
+	def adjust_position(self):
+		# move forward/backward until object area is within threshold
+		new_forward_thrust = Int16() # 0 to 280
+		if self.object_area < AREA_THRESHOLD_LOW:
+			new_forward_thrust.data = self.forward_thrust + FORWARD_THRUST_INCREASE
+			self.forward_thrust_publisher.publish(new_forward_thrust)
+			return False
+		elif self.object_area > AREA_THRESHOLD_HIGH:
+			is_object_area_in_threshold = False
+			new_forward_thrust.data = self.forward_thrust - FORWARD_THRUST_INCREASE
+			self.forward_thrust_publisher.publish(new_forward_thrust)
+			return False
+		else:
+			return True
+
 	def resetValues(self):
-		self.object_x = 0
-		self.object_y = 0
-		self.object_area = 0
-		self.forward_thrust = 0
-		self.yaw_current = 0
-		self.depth_current = 0
+			self.object_x = 0
+			self.object_y = 0
+			self.object_area = 0
+			self.yaw_current = 0
+			self.depth_current = 0
+
+# class TrackHeartState(smach.State):
+# 	def __init__(self):
+# 		smach.State.__init__(self, outcomes=['completed', 'notcompleted'])
+
+# 		self.object_x_subscriber = rospy.Subscriber('/torpedo_heart_x', Float64, self.object_x_callback)
+# 		self.object_y_subscriber = rospy.Subscriber('/torpedo_heart_y', Float64, self.object_y_callback)
+# 		self.object_area_subscriber = rospy.Subscriber('/torpedo_heart_area', Float64, self.object_area_callback)
+# 		self.object_x = 0
+# 		self.object_y = 0
+# 		self.object_area = 0
+
+# 		#self.forward_thrust_subscriber	= rospy.Subscriber('/yaw_pwm', Int16, self.forward_thrust_callback)
+# 		self.forward_thrust_publisher	= rospy.Publisher('/yaw_pwm', Int16, queue_size=10)
+# 		self.forward_thrust = 0
+
+# 		self.yaw_current_subscriber = rospy.Subscriber('/yaw_control/state', Float64, self.yaw_callback) # current orientation
+# 		self.yaw_setpoint_publisher = rospy.Publisher('yaw_control/setpoint', Float64, queue_size=10) # desired orientation
+# 		self.yaw_current = 0 # in degrees
+
+# 		self.depth_subscriber = rospy.Subscriber('/depth_control/state', Float64, self.depth_callback)
+# 		self.depth_publisher = rospy.Publisher('/depth_control/setpoint', Float64, queue_size=10)
+# 		self.depth_current = 0 # in inches
+
+# 		self.torpedo_shoot_publisher = rospy.Publisher('/torpedo_shoot', Bool, queue_size=10)
+
+# 	def object_x_callback(self, msg):
+# 		self.object_x = msg.data
+
+# 	def object_y_callback(self, msg):
+# 		self.object_y = msg.data
+
+# 	def object_area_callback(self, msg):
+# 		self.object_area = msg.data
+
+# 	def yaw_callback(self, msg):
+# 		self.yaw_current = msg.data
+
+# 	def depth_callback(self, msg):
+# 		self.depth_current = msg.data
+
+# 	def execute(self, userdata):
+# 		CAMERA_WIDTH = 400
+# 		CAMERA_HEIGHT = 300
+# 		PADDING_X = 3
+# 		PADDING_Y = 3
+# 		YAW_INCREASE = 2
+# 		AREA_THRESHOLD_LOW = 0.85
+# 		AREA_THRESHOLD_HIGH = 0.90
+# 		DEPTH_INCREASE = 1
+# 		FORWARD_THRUST_INCREASE = 1
+
+# 		is_object_x_centered = False
+# 		is_object_y_centered = False
+# 		is_object_area_in_threshold = False
+		
+# 		new_yaw = Float64()
+# 		new_depth = Float64()
+# 		new_forward_thrust = Int16()
+
+# 		# rotate yaw until x is within center
+# 		if self.object_x > CAMERA_WIDTH/2 + PADDING_X:
+# 			is_object_x_centered = False
+# 			new_yaw.data = self.yaw_current - YAW_INCREASE
+# 			self.yaw_setpoint_publisher.publish(new_yaw)
+# 		elif self.object_x < CAMERA_WIDTH/2 - PADDING_X:
+# 			is_object_x_centered = False
+# 			new_yaw.data = self.yaw_current + YAW_INCREASE
+# 			self.yaw_setpoint_publisher.publish(new_yaw)
+# 		else:
+# 			is_object_x_centered = True
+
+# 		# change depth until y is within center
+# 		if self.object_y > CAMERA_HEIGHT/2 + PADDING_Y:
+# 			is_object_y_centered = False
+# 			new_depth.data = self.depth_current + DEPTH_INCREASE
+# 			self.depth_publisher.publish(new_depth)
+# 		elif self.object_y < CAMERA_HEIGHT/2 - PADDING_Y:
+# 			is_object_y_centered = False
+# 			new_depth.data = self.depth_current - DEPTH_INCREASE
+# 			self.depth_publisher.publish(new_depth)
+# 		else:
+# 			is_object_y_centered = True
+
+# 		# move forward/backward until object area is 90%
+# 		if self.object_area < AREA_THRESHOLD_LOW:
+# 			is_object_area_in_threshold = False
+# 			new_forward_thrust.data = self.forward_thrust + FORWARD_THRUST_INCREASE
+# 			self.forward_thrust_publisher.publish(new_forward_thrust)
+# 		elif self.object_area > AREA_THRESHOLD_LOW:
+# 			is_object_area_in_threshold = False
+# 			new_forward_thrust.data = self.forward_thrust - FORWARD_THRUST_INCREASE
+# 			self.forward_thrust_publisher.publish(new_forward_thrust)
+# 		else:
+# 			is_object_area_in_threshold = True
+
+# 		# go to next state if all object is at center of camera and within certain distace
+# 		if is_object_x_centered and is_object_y_centered and is_object_area_in_threshold:
+# 			self.resetValues()
+# 			shoot = Bool()
+# 			shoot.data = True
+# 			self.torpedo_shoot_publisher.publish(shoot)
+# 			return 'completed'
+# 		else:
+# 			return 'notcompleted'
+
+# 	def resetValues(self):
+# 		self.object_x = 0
+# 		self.object_y = 0
+# 		self.object_area = 0
+# 		self.forward_thrust = 0
+# 		self.yaw_current = 0
+# 		self.depth_current = 0
 		
 
-class ShootTorpedoState(smach.State):
-	def __init__(self):
-		smach.State.__init__(self, outcomes=['completed', 'notcompleted'])
+# class ShootTorpedoState(smach.State):
+# 	def __init__(self):
+# 		smach.State.__init__(self, outcomes=['completed', 'notcompleted'])
 
-		self.shoot_publisher = rospy.Publisher('/torpedo_shoot', Bool, queue_size=10)
+# 		self.torpedo_shoot_publisher = rospy.Publisher('/torpedo_shoot', Bool, queue_size=10)
 
-	def execute(self, userdata):
-		shoot = Bool()
-		shoot.data = True
-		self.shoot_publisher.publish(shoot)
-		return 'notcompleted'
-
-
-class DepthChangeState(smach.State):
-	def __init__(self):
-		smach.State.__init__(self, outcomes=['completed', 'notcompleted'])
-
-	def execute(self, userdata):
-		pass
+# 	def execute(self, userdata):
+# 		shoot = Bool()
+# 		shoot.data = True
+# 		self.torpedo_shoot_publisher.publish(shoot)
+# 		return 'notcompleted'
 
 
-class EndState(smach.State):
-	def __init__(self):
-		smach.State.__init__(self, outcomes=['completed', 'notcompleted'])
+# class DepthChangeState(smach.State):
+# 	def __init__(self):
+# 		smach.State.__init__(self, outcomes=['completed', 'notcompleted'])
 
-	def execute(self, userdata):
-		pass
+# 		self.depth_subscriber = rospy.Subscriber('/depth_control/state', Float64, self.depth_callback)
+# 		self.depth_publisher = rospy.Publisher('/depth_control/setpoint', Float64, queue_size=10)
+# 		self.depth_current = 0 # in inches
 
-class ResetState(smach.State):
-	def __init__(self):
-		smach.State.__init__(self, outcomes=['completed', 'notcompleted'])
+# 	def depth_callback(self, msg):
+# 		self.depth_current = msg.data
 
-	def execute(self, userdata):
-		pass
+# 	def execute(self, userdata):
+# 		depth_desired_threshold_low = 1
+# 		depth_desired_threshold_high = 2
+# 		if self.depth_current <= high and self.depth_current >= low
+# 		return 'notcompleted'
 
 
 def main:
@@ -262,14 +281,23 @@ def main:
 	sis = smach_ros.IntrospectionServer('server_name', sm, '/SM_ROOT')
 	sis.start()
 
+	board_topic = {
+		x: '/torpedo_board_x',
+		y: '/torpedo_board_y',
+		area: '/torpedo_board_area'
+	}
+
+	heart_topic = {
+		x: '/torpedo_heart_x',
+		y: '/torpedo_heart_y',
+		area: '/torpedo_heart_area'
+	}
+
 	with sm:
 		smach.StateMachine.add('StartState', StartState(), transitions={'ready':'TrackBoardState', 'notready':'StartState'})
-		smach.StateMachine.add('TrackBoardState', TrackBoardState(), transitions={'completed':'TrackHeartState', 'notcompleted':'TrackBoardState', 'reset':'ResetState'})
-		smach.StateMachine.add('TrackHeartState', TrackHeartState(), transitions={'completed':'ShootTorpedoState', 'notcompleted':'TrackHeartState', 'reset':'ResetState'})
-		smach.StateMachine.add('ShootTorpedoState', ShootTorpedoState(), transitions={'completed':'DepthChangeState', 'notcompleted':'ShootTorpedoState', 'reset':'ResetState'})
-		smach.StateMachine.add('DepthChangeState', DepthChangeState(), transitions={'completed':'EndState', 'notcompleted':'DepthChangeState', 'reset':'ResetState'})
-		smach.StateMachine.add('EndState', EndState(), transitions={'completed':'torpedo_task_complete', 'notcompleted':'EndState'})
-		smach.StateMachine.add('ResetState', EndState(), transitions={'reset':'StartState'})
+		smach.StateMachine.add('TrackBoardState', TrackObjectState(board_topic), transitions={'completed':'TrackHeartState', 'notcompleted':'TrackBoardState'})
+		smach.StateMachine.add('TrackHeartState', TrackObjectState(heart_topic), transitions={'completed':'ShootTorpedoState', 'notcompleted':'TrackHeartState'})
+		smach.StateMachine.add('ShootTorpedoState', ShootTorpedoState(), transitions={'completed':'StartState', 'notcompleted':'ShootTorpedoState'})
 
 	outcome = sm.execute()
 	rospy.spin()
