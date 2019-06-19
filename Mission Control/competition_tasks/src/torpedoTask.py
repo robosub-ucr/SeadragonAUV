@@ -275,22 +275,22 @@ class TrackObjectState(smach.State):
 # 		return 'notcompleted'
 
 
-def main:
+def main():
 	rospy.init_node('torpedo_task_state_machine')
 	sm = smach.StateMachine(outcomes=['torpedo_task_complete'])
 	sis = smach_ros.IntrospectionServer('server_name', sm, '/SM_ROOT')
 	sis.start()
 
 	board_topic = {
-		x: '/torpedo_board_x',
-		y: '/torpedo_board_y',
-		area: '/torpedo_board_area'
+		'x': '/torpedo_board_x',
+		'y': '/torpedo_board_y',
+		'area': '/torpedo_board_area'
 	}
 
 	heart_topic = {
-		x: '/torpedo_heart_x',
-		y: '/torpedo_heart_y',
-		area: '/torpedo_heart_area'
+		'x': '/torpedo_heart_x',
+		'y': '/torpedo_heart_y',
+		'area': '/torpedo_heart_area'
 	}
 
 	with sm:
