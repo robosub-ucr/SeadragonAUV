@@ -21,14 +21,12 @@ class StartState(smach.State):
 	def __init__(self):
 		smach.State.__init__(self, outcomes=['ready', 'notready'])
 
-		self.torpedo_task_subscriber = rospy.Subscriber('/torpedo_enable', Bool, self.torpedo_task_callback)
-		self.torpedoEnabled = False
-
-	def torpedo_task_callback(self, msg):
-		self.torpedoEnabled = msg.data
+		self.torpedo_task_enabled = False
+		rospy.Subscriber('/torpedo_enable', Bool, lambda msg: self.torpedo_task_enabled = msg.data)
 
 	def execute(self, userdata):
-		if self.torpedoEnabled:
+		if self.torpedo_task_enabled:
+			self.torpedo_task_enabled = False
 			return 'ready'
 		else:
 			return 'notready'
@@ -142,7 +140,7 @@ class TrackObjectState(smach.State):
 		elif self.forward_thrust < -MAX_FORWARD_THRUST:
 			self.forward_thrust = -MAX_FORWARD_THRUST
 
-
+		# Publish the new forward thrust
 		new_forward_thrust = Int16()
 		new_forward_thrust.data = self.forward_thrust
 		self.forward_thrust_publisher.publish(new_forward_thrust)
@@ -153,8 +151,6 @@ class ShootTorpedoState(smach.State):
 		smach.State.__init__(self, outcomes=['completed', 'notcompleted', 'reset'])
 
 		self.torpedo_shoot_publisher = rospy.Publisher('/torpedo_shoot', Bool, queue_size=10)
-		self.has_reset = True
-		self.reset_subscriber = rospy.Subscriber('/reset', Bool, lambda msg: self.has_reset = msg.data)
 
 	def execute(self, userdata):
 		shoot = Bool()
@@ -168,12 +164,13 @@ class ResetState(smach.State):
 		smach.State.__init__(self, outcomes=['restart', 'stay'])
 
 		self.has_reset = True
-		self.reset_subscriber = rospy.Subscriber('/reset', Bool, lambda msg: self.has_reset = msg.data)
+		rospy.Subscriber('/reset', Bool, lambda msg: self.has_reset = msg.data)
 
 	def execute(self, userdata):
 		if self.has_reset:
 			return 'stay'
 		else:
+			self.has_reset = True
 			return 'restart'
 
 
@@ -199,7 +196,7 @@ def main():
 		smach.StateMachine.add('StartState', StartState(), transitions={'ready':'TrackBoardState', 'notready':'StartState'})
 		smach.StateMachine.add('TrackBoardState', TrackObjectState(board_topic), transitions={'completed':'TrackHeartState', 'notcompleted':'TrackBoardState', 'reset':'ResetState'})
 		smach.StateMachine.add('TrackHeartState', TrackObjectState(heart_topic), transitions={'completed':'ShootTorpedoState', 'notcompleted':'TrackHeartState', 'reset':'ResetState'})
-		smach.StateMachine.add('ShootTorpedoState', ShootTorpedoState(), transitions={'completed':'StartState', 'notcompleted':'ShootTorpedoState', 'reset':'ResetState'})
+		smach.StateMachine.add('ShootTorpedoState', ShootTorpedoState(), transitions={'completed':'torpedo_task_complete', 'notcompleted':'ShootTorpedoState', 'reset':'ResetState'})
 		smach.StateMachine.add('ResetState', ResetState(), transitions={'restart':'StartState', 'stay':'ResetState'})
 
 	outcome = sm.execute()
