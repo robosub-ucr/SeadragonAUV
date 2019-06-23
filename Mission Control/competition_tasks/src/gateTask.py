@@ -1,13 +1,5 @@
 '''
 
-		State machine template using the smach library
-
-		Written by: Rogelio Vazquez lol
-
-		Another irrelevant comment
-
-
-
 		To Run this code: 
 
 		0. Save this file to any directory/Folder on your desktop
@@ -170,9 +162,8 @@ class DIVE(smach.State):
 			return 'reset'
 
 		if abs(self.depthPoint - self.currDepth) > 2:
-
-			
 			return 'notready'
+
 		else:
 
 			global desired_orientation
@@ -192,13 +183,13 @@ class ORIENTATION(smach.State):
 
         def __init__(self):
 
-                smach.State.__init__(self, outcomes=['continue','wait', 'reset'])
+        	smach.State.__init__(self, outcomes=['continue','wait', 'reset'])
 
 
 
                 # Publishers, Subscribers
 
-                self.reset_subscriber 	= rospy.Subscriber('/reset', Bool, self.reset_callback)
+            	self.reset_subscriber 	= rospy.Subscriber('/reset', Bool, self.reset_callback)
 		self.curryaw_subscriber	= rospy.Subscriber('/yaw_control/state', Float64, self.yaw_callback)
 		
 
@@ -208,15 +199,15 @@ class ORIENTATION(smach.State):
 		global desired_orientation
 		self.yawPoint = desired_orientation
 
-                self.orientation = 0
+            	self.orientation = 0
 
-                self.reset = False
+           	self.reset = False
 
 
 
         def reset_callback(self,msg):
 
-                self.reset = msg.data
+            	self.reset = msg.data
 
 	def yaw_callback(self,msg):
 
@@ -227,19 +218,19 @@ class ORIENTATION(smach.State):
         def execute(self, userdata):
 
 
-                if self.reset == True:
+        	if self.reset == True:
 			return 'reset'
 
 
 		elif (self.yawPoint - self.orientation) <= 0.5 :
 
-			                      
+				                      
 			return 'continue'
 
-                
-                else:
+	                
+	        else:
 
-                        return 'wait'
+	            return 'wait'
 
 
 
@@ -268,15 +259,15 @@ class TRACK(smach.State):
                 # Local Variables
 
 																			
-                self.reset = False
+        	self.reset = False
 		self.curryaw = 0 
 		self.yawPoint = Float64()
-		self.new_forward_thrust = Int16()	
+			
 
 
-        def reset_callback(self,msg):
+    	def reset_callback(self,msg):
 
-                self.reset = msg.data
+        	self.reset = msg.data
 
 	def gate_x_callback(self, msg):
 		self.gate_x = msg.data
@@ -286,7 +277,7 @@ class TRACK(smach.State):
 
 	def yaw_callback(self,msg):
 
-                self.currYaw = msg.data
+        	self.currYaw = msg.data
 
 	def execute(self, userdata):
 
@@ -357,19 +348,19 @@ class TURN(smach.State):
 		self.currYaw = 0
 		
 		self.yawPoint = 0
-                self.reset = False
+        	self.reset = False
 
 	def reset_callback(self,msg):
 
-                self.reset = msg.data
+        	self.reset = msg.data
 
 	def yaw_callback(self,msg):
 
-                self.currYaw = msg.data
+        	self.currYaw = msg.data
 
 	def yawPoint_callback(self,msg):
 
-                self.yawPoint = msg.data
+        	self.yawPoint = msg.data
 
 	def execute(self, userdata):
 		print self.currYaw
@@ -410,12 +401,12 @@ class PASS(smach.State):
 		self.fwdThrust = Int16()
 		self.fwdThrust.data = 0
 		self.timer = 0
-                self.reset = False
+        	self.reset = False
 		self.depthPoint = Float64()
 
 	def reset_callback(self,msg):
 
-                self.reset = msg.data
+        	self.reset = msg.data
 
 	def execute(self, userdata):
 		global gate_timer
@@ -457,6 +448,10 @@ class SET_DEPTH(smach.State):
 
 		self.depth_subscriber = rospy.Subscriber('/depth', Bool, self.depth_callback) 
 		self.reset_subscriber = rospy.Subscriber('/reset', Bool, self.reset_callback)
+
+
+		self.curryaw_subscriber = rospy.Subscriber('/yaw_control/state', Float64, self.yaw_callback) 
+		self.yawPoint_publisher = rospy.Publisher('/yaw_control/setpoint', Float64, queue_size=10) 
 		
 
 		# Local Variables
@@ -465,23 +460,24 @@ class SET_DEPTH(smach.State):
 
 		self.depth = 0
 		self.depthPoint = 0
+		self.curryaw = 0 
+		self.yawPoint = Float64()
 		
-
-
-                # Local Variables
-
-
-                self.reset = False
+        	self.reset = False
 
 	def reset_callback(self,msg):
 
-                self.reset = msg.data
+        	self.reset = msg.data
 
 
 
 	def depth_callback(self,msg):
 
 		self.depth = msg.data
+
+	def yaw_callback(self,msg):
+
+		self.curryaw= msg.data
 
 
 
@@ -495,13 +491,68 @@ class SET_DEPTH(smach.State):
 		
 
 		elif abs(self.depth - self.depthPoint) < 2:
-
+			global turn
+			self.yawPoint.data = self.currYaw + turn
+			self.yawPoint_publisher.publish(self.yawPoint)
 			return 'depth'
 
 		
 		else:
 
-			return 'wait'			
+			return 'wait'		
+
+
+class REORIENT(smach.State):
+
+	def __init__(self):
+
+		smach.State.__init__(self, outcomes=['complete','wait', 'reset'])
+
+		
+
+		#Subscribers and Publishers
+
+		self.reset_subscriber   = rospy.Subscriber('/reset', Bool, self.reset_callback)
+		self.curryaw_subscriber = rospy.Subscriber('/yaw_control/state', Float64, self.yaw_callback)
+		self.yawPoint_subscriber= rospy.Subscriber('/yaw_control/setpoint',Float64, self.yawPoint_callback)
+		
+ 
+
+                # Local Variables
+
+		self.currYaw = 0
+		
+		self.yawPoint = 0
+        	self.reset = False
+
+	def reset_callback(self,msg):
+
+        	self.reset = msg.data
+
+	def yaw_callback(self,msg):
+
+        	self.currYaw = msg.data
+
+	def yawPoint_callback(self,msg):
+
+        	self.yawPoint = msg.data
+
+	def execute(self, userdata):
+		print self.currYaw
+		
+
+		if self.reset == True:
+
+			return 'reset'
+
+
+		elif abs(self.yawPoint - self.currYaw) < 0.5:
+
+			return 'complete'
+
+		else: 
+
+			return 'wait'	
 
 
 
@@ -617,7 +668,10 @@ def main():
 
 		smach.StateMachine.add('SET_DEPTH',SET_DEPTH(),
 
-					transitions ={'depth':'COMPLETED','wait':'SET_DEPTH', 'reset':'RESET'})
+					transitions ={'depth':'REORIENT','wait':'SET_DEPTH', 'reset':'RESET'})
+
+		smach.StateMachine.add('REORIENT', REORIENT(),
+					transitions ={'reset':'RESET', 'complete':'COMPLETED', 'wait':'REORIENT'})
 
 		smach.StateMachine.add('COMPLETED',COMPLETED(),
 
