@@ -20,46 +20,61 @@ MAX_FORWARD_THRUST= 280
 
 class StartState(smach.State):
 	def __init__(self):
-		smach.State.__init__(self, outcomes=['ready', 'notready', 'reset'])
-		self.torpedoEnabled = False
-		self.torpedo_task_subscriber = rospy.Subscriber('/torpedo_enable', Bool, lambda msg: self.torpedoEnabled = msg.data)
+		smach.State.__init__(self, outcomes=['ready', 'notready'])
 
-	# def torpedo_task_callback(self, msg):
-	# 	self.torpedoEnabled = msg.data
+		self.torpedo_task_enabled = False
+		rospy.Subscriber('/torpedo_enable', Bool, self.task_enable_callback)
+
+	def task_enable_callback(self, msg):
+		self.torpedo_task_enabled = msg.data
 
 	def execute(self, userdata):
-		if self.torpedoEnabled:
-			self.torpedoEnabled = False
+		if self.torpedo_task_enabled:
+			self.torpedo_task_enabled = False
 			return 'ready'
 		else:
 			return 'notready'
 
 class TrackObjectState(smach.State):
-	def __init__(self, obj_topic):
+	def __init__(self, obj_topic, yoffset):
 		smach.State.__init__(self, outcomes=['completed', 'notcompleted', 'reset'])
 
+		self.yoffset = yoffset
 		self.timer = 0
 
 		self.object_x = 0 # in pixels
 		self.object_y = 0 # in pixels
 		self.object_area = 0 # object width * height
-		rospy.Subscriber(obj_topic['x'], Float64, lambda msg: self.object_x = msg.data)
-		rospy.Subscriber(obj_topic['y'], Float64, lambda msg: self.object_y = msg.data)
-		rospy.Subscriber(obj_topic['area'], Float64, lambda msg: self.object_area = msg.data)
+		rospy.Subscriber(obj_topic['x'], Float64, self.object_x_callback)
+		rospy.Subscriber(obj_topic['y'], Float64, self.object_y_callback)
+		rospy.Subscriber(obj_topic['area'], Float64, self.object_area_callback)
 		
 		self.yaw_current = 0 # in degrees
-		rospy.Subscriber('/yaw_control/state', Float64, lambda msg: self.yaw_current = msg.data) # current orientation
+		rospy.Subscriber('/yaw_control/state', Float64, self.yaw_callback) # current orientation
 		self.yaw_publisher = rospy.Publisher('yaw_control/setpoint', Float64, queue_size=10) # desired orientation
 
 		self.depth_current = 0 # in inches
-		rospy.Subscriber('/depth_control/state', Float64, lambda msg: self.depth_current = msg.data)
+		rospy.Subscriber('/depth_control/state', Float64, self.depth_callback)
 		self.depth_publisher = rospy.Publisher('/depth_control/setpoint', Float64, queue_size=10)
 
 		self.forward_thrust_publisher = rospy.Publisher('/yaw_pwm', Int16, queue_size=10)
 		self.forward_thrust = 0
 
 		self.has_reset = False
-		self.reset_subscriber = rospy.Subscriber('/reset', Bool, lambda msg: self.has_reset = msg.data)
+		self.reset_subscriber = rospy.Subscriber('/reset', Bool, self.reset_callback)
+
+	def object_x_callback(self, msg):
+		self.object_x = msg.data
+	def object_y_callback(self, msg):
+		self.object_y = msg.data
+	def object_area_callback(self, msg):
+		self.object_area = msg.data
+	def yaw_callback(self, msg):
+		self.yaw_current = msg.data
+	def depth_callback(self, msg):
+		self.depth_current = msg.data
+	def reset_callback(self, msg):
+		self.has_reset = msg.data
 
 	def execute(self, userdata):
 		self.timer = self.timer + 1
@@ -109,11 +124,11 @@ class TrackObjectState(smach.State):
 	def adjust_depth(self):
 		# change depth until y is within center +/- padding
 		new_depth = Float64() # 0 to 60 inches
-		if self.object_y > CAMERA_HEIGHT/2 + TORPEDO_Y_OFFSET + CENTER_PADDING_Y:
+		if self.object_y > CAMERA_HEIGHT/2 + self.yoffset + CENTER_PADDING_Y:
 			new_depth.data = self.depth_current + DEPTH_INCREASE
 			self.depth_publisher.publish(new_depth)
 			return False
-		elif self.object_y < CAMERA_HEIGHT/2 + TORPEDO_Y_OFFSET - CENTER_PADDING_Y:
+		elif self.object_y < CAMERA_HEIGHT/2 + self.yoffset - CENTER_PADDING_Y:
 			new_depth.data = self.depth_current - DEPTH_INCREASE
 			self.depth_publisher.publish(new_depth)
 			return False
@@ -143,7 +158,7 @@ class TrackObjectState(smach.State):
 		elif self.forward_thrust < -MAX_FORWARD_THRUST:
 			self.forward_thrust = -MAX_FORWARD_THRUST
 
-
+		# Publish the new forward thrust
 		new_forward_thrust = Int16()
 		new_forward_thrust.data = self.forward_thrust
 		self.forward_thrust_publisher.publish(new_forward_thrust)
@@ -154,8 +169,6 @@ class ShootTorpedoState(smach.State):
 		smach.State.__init__(self, outcomes=['completed', 'notcompleted', 'reset'])
 
 		self.torpedo_shoot_publisher = rospy.Publisher('/torpedo_shoot', Bool, queue_size=10)
-		self.has_reset = True
-		self.reset_subscriber = rospy.Subscriber('/reset', Bool, lambda msg: self.has_reset = msg.data)
 
 	def execute(self, userdata):
 		shoot = Bool()
@@ -169,12 +182,16 @@ class ResetState(smach.State):
 		smach.State.__init__(self, outcomes=['restart', 'stay'])
 
 		self.has_reset = True
-		self.reset_subscriber = rospy.Subscriber('/reset', Bool, lambda msg: self.has_reset = msg.data)
+		rospy.Subscriber('/reset', Bool, self.reset_callback)
+
+	def reset_callback(self, msg):
+		self.has_reset = msg.data
 
 	def execute(self, userdata):
 		if self.has_reset:
 			return 'stay'
 		else:
+			self.has_reset = True
 			return 'restart'
 
 
@@ -198,8 +215,8 @@ def main():
 
 	with sm:
 		smach.StateMachine.add('StartState', StartState(), transitions={'ready':'TrackBoardState', 'notready':'StartState'})
-		smach.StateMachine.add('TrackBoardState', TrackObjectState(board_topic), transitions={'completed':'TrackHeartState', 'notcompleted':'TrackBoardState', 'reset':'ResetState'})
-		smach.StateMachine.add('TrackHeartState', TrackObjectState(heart_topic), transitions={'completed':'ShootTorpedoState', 'notcompleted':'TrackHeartState', 'reset':'ResetState'})
+		smach.StateMachine.add('TrackBoardState', TrackObjectState(board_topic, 0), transitions={'completed':'TrackHeartState', 'notcompleted':'TrackBoardState', 'reset':'ResetState'})
+		smach.StateMachine.add('TrackHeartState', TrackObjectState(heart_topic, TORPEDO_Y_OFFSET), transitions={'completed':'ShootTorpedoState', 'notcompleted':'TrackHeartState', 'reset':'ResetState'})
 		smach.StateMachine.add('ShootTorpedoState', ShootTorpedoState(), transitions={'completed':'StartState', 'notcompleted':'ShootTorpedoState', 'reset':'ResetState'})
 		smach.StateMachine.add('ResetState', ResetState(), transitions={'restart':'StartState', 'stay':'ResetState'})
 
