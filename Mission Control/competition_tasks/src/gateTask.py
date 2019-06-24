@@ -56,11 +56,11 @@ depth_start = 18
 
 #will change acording to direction of gate
 global desired_orientation
-desired_orientation = 90
+desired_orientation = 1.57
 
 #amount of degrees to turn after track state
 global turn
-turn = 5
+turn = .1
 
 #depth for the buoys
 global buoy_depth
@@ -114,6 +114,7 @@ class init(smach.State):
 			# Enable depth pid
 			self.depthEnable.data = True
 			self.depthPidEnable_publisher.publish(self.depthEnable)
+			self.gateEnabled = False
 			return 'start'
 
 		else:
@@ -157,8 +158,8 @@ class DIVE(smach.State):
 		print self.currDepth
 		print self.depthPoint
 
-		if self.reset == False:
-
+		if self.reset == True:
+			self.reset = False
 			return 'reset'
 
 		if abs(self.depthPoint - self.currDepth) > 2:
@@ -172,7 +173,7 @@ class DIVE(smach.State):
 			# Enable depth pid
 			self.yawEnable.data = True
 			self.yawPidEnable_publisher.publish(self.yawEnable)
-
+			self.reset = False
 			return 'ready'			
 
 
@@ -219,12 +220,13 @@ class ORIENTATION(smach.State):
 
 
         	if self.reset == True:
+			self.reset = False
 			return 'reset'
 
 
-		elif (self.yawPoint - self.orientation) <= 0.5 :
+		elif abs(self.yawPoint - self.orientation) <= 0.1 :
 
-				                      
+			self.reset = False	                      
 			return 'continue'
 
 	                
@@ -234,7 +236,7 @@ class ORIENTATION(smach.State):
 
 
 
-# Define State Reset
+
 
 class TRACK(smach.State):
 
@@ -283,14 +285,15 @@ class TRACK(smach.State):
 
 		if self.reset == True:
 			self.timer = 0
+			self.reset = False
 			return 'reset'
 
 		camera_width = 400
 		camera_height = 300
 		padding_x = 5
-		yaw_change = 2
-		area_threshold_low = 0.85
-		area_threshold_high = 0.90
+		yaw_change = .1
+		area_threshold_low = 0.65
+		area_threshold_high = 0.70
 		new_yaw = Float64()
 		
 		
@@ -314,11 +317,12 @@ class TRACK(smach.State):
 					self.forward_thrust_publisher.publish(self.forward_thrust)
 
 		if self.gate_area/(camera_width*camera_height) > area_threshold_low and self.gate_area/(camera_width*camera_height) < area_threshold_high:
+			self.reset = False
+			self.forward_thrust = 0
+			self.forward_thrust_publisher.publish(self.forward_thrust)
 			global turn
 			self.yawPoint.data = self.currYaw - turn
 			self.yawPoint_publisher.publish(self.yawPoint)
-			self.forward_thrust = 0
-			self.forward_thrust_publisher.publish(self.forward_thrust)
 			self.timer = 0
 			return 'area>90'
 
@@ -367,12 +371,13 @@ class TURN(smach.State):
 		
 
 		if self.reset == True:
-
+			
+			self.reset = False
 			return 'reset'
 
 
 		elif abs(self.yawPoint - self.currYaw) < 0.5:
-
+			self.reset = False
 			return 'pass'
 
 		else: 
@@ -418,6 +423,7 @@ class PASS(smach.State):
 
 		if self.reset == True:
 			self.timer = 0
+			self.reset = False
 			return 'reset'
 
 		
@@ -427,6 +433,7 @@ class PASS(smach.State):
 			global buoy_depth
 			self.depthPoint.data = buoy_depth
 			self.depthPoint_publisher.publish(self.depthPoint)
+			self.reset = False
 			self.timer = 0
 			return 'timer'
 
@@ -486,7 +493,7 @@ class SET_DEPTH(smach.State):
 		self.depthPoint = buoy_depth 
 
 		if self.reset == True:
-
+			self.reset = False
 			return 'reset'
 		
 
@@ -494,6 +501,7 @@ class SET_DEPTH(smach.State):
 			global turn
 			self.yawPoint.data = self.currYaw + turn
 			self.yawPoint_publisher.publish(self.yawPoint)
+			self.reset = False
 			return 'depth'
 
 		
@@ -542,11 +550,11 @@ class REORIENT(smach.State):
 		
 
 		if self.reset == True:
-
+			self.reset = False
 			return 'reset'
 
 
-		elif abs(self.yawPoint - self.currYaw) < 0.5:
+		elif abs(self.yawPoint - self.currYaw) < 0.1:
 
 			return 'complete'
 

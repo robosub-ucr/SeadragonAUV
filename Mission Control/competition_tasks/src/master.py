@@ -59,6 +59,7 @@ class idle(smach.State):
 		# Disable Motor control System & Task statemachines
 		if self.systemDisabled == False:
 			self.fwdThrust_publisher.publish(self.fwdThrust)
+			self.taskReset.data = True
 			self.taskReset_publisher.publish(self.taskReset)
 			self.yawPidEnable_publisher.publish(self.Disable)
 			self.depthPidEnable_publisher.publish(self.Disable)
@@ -67,6 +68,8 @@ class idle(smach.State):
 		# Check if sub has been pushed down 'x' inches to begin run
 		if self.depthStart > 12:
 			self.systemDisabled = False
+			self.taskReset.data = False
+			self.taskReset_publisher.publish(self.taskReset)
 			return 'go'
 
 		else:
