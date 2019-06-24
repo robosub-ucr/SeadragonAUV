@@ -181,11 +181,13 @@ class ShootTorpedoState(smach.State):
 		smach.State.__init__(self, outcomes=['completed', 'notcompleted', 'reset'])
 
 		self.torpedo_shoot_publisher = rospy.Publisher('/torpedo_shoot', Bool, queue_size=10)
+		self.task_complete_publisher = rospy.Publisher('/task_complete', Bool, queue_size=10)
 
 	def execute(self, userdata):
 		shoot = Bool()
 		shoot.data = True
-		self.torpedo_shoot_publisher.publish(shoot)
+		self.torpedo_shoot_publisher.publish(shoot) # publishes True
+		self.task_complete_publisher.publish(shoot)
 		return 'completed'
 
 
@@ -193,8 +195,8 @@ class ResetState(smach.State):
 	def __init__(self):
 		smach.State.__init__(self, outcomes=['restart', 'stay'])
 
-		self.has_reset = True
-		rospy.Subscriber('/reset', Bool, self.reset_callback)
+		# self.has_reset = True
+		# rospy.Subscriber('/reset', Bool, self.reset_callback)
 
 	def reset_callback(self, msg):
 		self.has_reset = msg.data
