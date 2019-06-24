@@ -32,9 +32,10 @@ class StartState(smach.State):
 			return 'notready'
 
 class TrackObjectState(smach.State):
-	def __init__(self, obj_topic):
+	def __init__(self, obj_topic, yoffset):
 		smach.State.__init__(self, outcomes=['completed', 'notcompleted', 'reset'])
 
+		self.yoffset = yoffset
 		self.timer = 0
 
 		self.object_x = 0 # in pixels
@@ -106,12 +107,12 @@ class TrackObjectState(smach.State):
 	def adjust_depth(self):
 		# change depth until y is within center +/- padding
 		new_depth = Float64() # 0 to 60 inches
-		if self.object_y > CAMERA_HEIGHT/2 + PADDING_Y:
-			new_depth.data = self.depth_current - DEPTH_INCREASE
+		if self.object_y > CAMERA_HEIGHT/2 + self.yoffset + CENTER_PADDING_Y:
+			new_depth.data = self.depth_current + DEPTH_INCREASE
 			self.depth_publisher.publish(new_depth)
 			return False
-		elif self.object_y < CAMERA_HEIGHT/2 - PADDING_Y:
-			new_depth.data = self.depth_current + DEPTH_INCREASE
+		elif self.object_y < CAMERA_HEIGHT/2 + self.yoffset - CENTER_PADDING_Y:
+			new_depth.data = self.depth_current - DEPTH_INCREASE
 			self.depth_publisher.publish(new_depth)
 			return False
 		else:
@@ -194,9 +195,9 @@ def main():
 
 	with sm:
 		smach.StateMachine.add('StartState', StartState(), transitions={'ready':'TrackBoardState', 'notready':'StartState'})
-		smach.StateMachine.add('TrackBoardState', TrackObjectState(board_topic), transitions={'completed':'TrackHeartState', 'notcompleted':'TrackBoardState', 'reset':'ResetState'})
-		smach.StateMachine.add('TrackHeartState', TrackObjectState(heart_topic), transitions={'completed':'ShootTorpedoState', 'notcompleted':'TrackHeartState', 'reset':'ResetState'})
-		smach.StateMachine.add('ShootTorpedoState', ShootTorpedoState(), transitions={'completed':'torpedo_task_complete', 'notcompleted':'ShootTorpedoState', 'reset':'ResetState'})
+		smach.StateMachine.add('TrackBoardState', TrackObjectState(board_topic, 0), transitions={'completed':'TrackHeartState', 'notcompleted':'TrackBoardState', 'reset':'ResetState'})
+		smach.StateMachine.add('TrackHeartState', TrackObjectState(heart_topic, TORPEDO_Y_OFFSET), transitions={'completed':'ShootTorpedoState', 'notcompleted':'TrackHeartState', 'reset':'ResetState'})
+		smach.StateMachine.add('ShootTorpedoState', ShootTorpedoState(), transitions={'completed':'StartState', 'notcompleted':'ShootTorpedoState', 'reset':'ResetState'})
 		smach.StateMachine.add('ResetState', ResetState(), transitions={'restart':'StartState', 'stay':'ResetState'})
 
 	outcome = sm.execute()
