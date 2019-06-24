@@ -10,7 +10,7 @@ CAMERA_WIDTH = 400
 CAMERA_HEIGHT = 300
 CENTER_PADDING_X = 5
 CENTER_PADDING_Y = 5
-YAW_INCREASE = 1
+YAW_INCREASE = 0.017 # radians
 DEPTH_INCREASE = 1
 FORWARD_THRUST_INCREASE = 1
 AREA_THRESHOLD_LOW = 0.85
@@ -188,11 +188,12 @@ class ResetState(smach.State):
 		self.has_reset = msg.data
 
 	def execute(self, userdata):
-		if self.has_reset:
-			return 'stay'
-		else:
-			self.has_reset = True
-			return 'restart'
+		# if self.has_reset:
+		# 	return 'stay'
+		# else:
+		# 	self.has_reset = True
+		# 	return 'restart'
+		return 'restart'
 
 
 def main():
