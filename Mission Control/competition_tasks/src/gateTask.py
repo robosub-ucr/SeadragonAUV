@@ -68,7 +68,7 @@ buoy_depth = 36 #inches
 
 #time to pass gate
 global gate_timer
-gate_timer = 40000
+gate_timer = 10000
 
 ##------------------------- STATE DEFINITIONS -----------------------------------##
 
@@ -376,7 +376,7 @@ class TURN(smach.State):
 			return 'reset'
 
 
-		elif abs(self.yawPoint - self.currYaw) < 0.5:
+		elif abs(self.yawPoint - self.currYaw) < 0.05:
 			self.reset = False
 			return 'pass'
 
@@ -499,7 +499,7 @@ class SET_DEPTH(smach.State):
 
 		elif abs(self.depth - self.depthPoint) < 2:
 			global turn
-			self.yawPoint.data = self.currYaw + turn
+			self.yawPoint.data = self.curryaw + turn
 			self.yawPoint_publisher.publish(self.yawPoint)
 			self.reset = False
 			return 'depth'

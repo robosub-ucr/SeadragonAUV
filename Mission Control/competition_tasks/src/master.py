@@ -15,12 +15,10 @@ from std_msgs.msg import Bool, Float64, Int16
 
 ##------------------------- STATE DEFINITIONS -----------------------------------##
 
-from enum import Enum
-class Task(Enum):
-	GATE = 0
-	BOUY = 1
-	TORPEDO = 2
-	DUMMY = 3
+GATE_TASK = 0
+BUOY_TASK = 1
+TORPEDO_TASK =2
+DUMMY_TASK = 3
 
 # Define State idle
 
@@ -123,7 +121,7 @@ class transition(smach.State):
 			self.timer = 0
 			return 'reset'
 
-		elif self.timer > 80000:
+		elif self.timer > 10000:
 			self.timer = 0
 			# Stop Sub in preparation for search
 			self.fwdThrust.data = 0
@@ -164,7 +162,7 @@ class search(smach.State):
 
                         return 'reset'
 
-                elif self.timer > 20000:
+                elif self.timer > 10000:
 
                         self.timer = 0
 
@@ -197,7 +195,7 @@ class execute(smach.State):
 		self.torpedo_publisher	 = rospy.Publisher('/torpedo_enable', Bool, queue_size=1)
 
 		# Local variables	
-		self.task	  = Task.GATE
+		self.task	  = GATE_TASK
 		self.taskEnabled  = False
 		self.taskComplete = False	
 		self.resetDepth   = 0
@@ -217,21 +215,22 @@ class execute(smach.State):
 	def execute(self, userdata):
 
 		# Actions
-		if self.task == Task.GATE and self.taskEnabled == False:
+		print("execute: ", self.task, self.taskEnabled)
+		if self.task == GATE_TASK and self.taskEnabled == False:
 
 			# Enable Gate Task
 			self.enable.data = True
 			self.gate_publisher.publish(self.enable)
 			self.taskEnabled = True
 
-		elif self.task == Task.BOUY and self.taskEnabled == False:
+		elif self.task == BUOY_TASK and self.taskEnabled == False:
 
 			# Enable Buoy Task
 			self.enable.data = True
 			self.buoy_publisher.publish(self.enable)
 			self.taskEnabled = True
 
-		elif self.task == Task.TORPEDO and self.taskEnabled == False:
+		elif self.task == TORPEDO_TASK and self.taskEnabled == False:
 
 			# Enable Torpedo Task
 			self.enable.data = True
@@ -244,7 +243,7 @@ class execute(smach.State):
 			self.taskEnabled  = False
 			self.taskComplete = False
 			self.resetDepth	  = 0
-			self.task	  = Task.GATE
+			self.task	  = GATE_TASK
 			return 'reset'
 
 		elif self.taskComplete == True:
@@ -252,7 +251,7 @@ class execute(smach.State):
 			self.taskEnabled  = False
 			self.enable.data  = False
 			self.taskComplete = False
-			self.task 	 = Task.DUMMY	 # Dummy number to prevent previous task from starting again
+			self.task 	 = DUMMY_TASK	 # Dummy number to prevent previous task from starting again
 			return 'taskcomplete'
 
 		else: 
