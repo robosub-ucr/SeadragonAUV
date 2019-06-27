@@ -42,6 +42,7 @@ class idle(smach.State):
 		self.depthPidEnable_publisher	= rospy.Publisher('/depth_control/pid_enable', Bool, queue_size=10)
 		self.fwdThrust_publisher	= rospy.Publisher('/yaw_pwm', Int16, queue_size=10) 
 		self.taskReset_publisher	= rospy.Publisher('/reset', Bool, queue_size=10)
+		self.light_publisher		= rospy.Publisher('light_state', Int16, queue_size=10)
 			
 		# Publisher Data Containers
 		self.taskReset			= Bool()
@@ -50,6 +51,8 @@ class idle(smach.State):
 		self.Disable.data 		= False
 		self.fwdThrust			= Int16()
 		self.fwdThrust.data 		= 0
+		self.light			= Int16()
+		self.light.data			= 0
 
 		# Local variables
 		self.depthStart     = 0
@@ -60,6 +63,7 @@ class idle(smach.State):
 
 	def execute(self, userdata):
 		
+		self.light_publisher.publish(self.light)
 		# Disable Motor control System & Task statemachines
 		if self.systemDisabled == False:
 			self.fwdThrust_publisher.publish(self.fwdThrust)
@@ -94,14 +98,18 @@ class transition(smach.State):
 		
 		# Publishers
 		self.fwdThrust_publisher	= rospy.Publisher('/yaw_pwm', Int16, queue_size=10)
+		self.light_publisher		= rospy.Publisher('light_state', Int16, queue_size=10)
 		
 		# Publisher Data Containers
 		self.fwdThrust			= Int16()
 		self.fwdThrust.data		= 0
+		self.light			= Int16()
+		self.light.data			= 1
 
 		# Local Variables
 		self.timer = 0
 		self.resetDepth = 0
+		
 
 
 	def depth_callback(self,msg):
@@ -111,7 +119,8 @@ class transition(smach.State):
 
 
 	def execute(self, userdata):
-
+		
+		self.light_publisher.publish(self.light)
 		self.timer += 1
 
 		# Begin Accelerating until cruising speed is reached
@@ -155,8 +164,11 @@ class search(smach.State):
 		self.task_publisher		= rospy.Publisher('/task_detected', Int16, queue_size=10)
 		self.yawOrientation_publisher   = rospy.Publisher('/yaw_control/setpoint', Float64, queue_size=10)
 		self.visionEnable_publisher	= rospy.Publisher('/vision_enable', Bool, queue_size=10)
+		self.light_publisher		= rospy.Publisher('light_state', Int16, queue_size=10)
 		
                 # Local Variables
+		self.light			= Int16()
+		self.light.data			= 2
                 self.timer        = 0
                 self.resetDepth   = 0
 		self.currYaw 	  = 0
@@ -205,6 +217,8 @@ class search(smach.State):
 
         def execute(self, userdata):
 
+
+		self.light_publisher.publish(self.light)
                 # Check for reset condition
 		if self.resetDepth < 6:
 			# Reset Local Variables
@@ -269,12 +283,15 @@ class execute(smach.State):
 		self.gate_publisher	 = rospy.Publisher('/gate_enable', Bool, queue_size=1)
 		self.buoy_publisher	 = rospy.Publisher('/buoy_enable', Bool, queue_size=1)
 		self.torpedo_publisher	 = rospy.Publisher('/torpedo_enable', Bool, queue_size=1)
+		self.light_publisher	 = rospy.Publisher('light_state', Int16, queue_size=10)
 
 		# Local variables	
 		self.task	  = GATE_TASK
 		self.taskEnabled  = False
 		self.taskComplete = False	
 		self.resetDepth   = 0
+		self.light			= Int16()
+		self.light.data			= 3
 
 	def reset_callback(self,msg):
 
@@ -290,6 +307,7 @@ class execute(smach.State):
 			
 	def execute(self, userdata):
 
+		self.light_publisher.publish(self.light)
 		# Actions
 		print("execute: ", self.task, self.taskEnabled)
 		if self.task == GATE_TASK and self.taskEnabled == False:
