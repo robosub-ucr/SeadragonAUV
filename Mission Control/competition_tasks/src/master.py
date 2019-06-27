@@ -4,6 +4,12 @@
 
 ##------------------------------- IMPORTS ---------------------------------------##
 
+from decimal import *
+
+import matplotlib.pyplot as plt
+
+import math
+
 import numpy as np
 import rospy
 import smach
@@ -142,35 +148,105 @@ class search(smach.State):
                 smach.State.__init__(self, outcomes=['taskfound','!taskfound','reset'])
 
                 # Publishers, Subscribers
-                self.reset_subscriber = rospy.Subscriber('/reset', Bool, self.reset_callback)
-
+		self.depth_subscriber		= rospy.Subscriber('/depth', Int16, self.depth_callback) 
+		self.yaw_subscriber		= rospy.Subscriber('/yaw_control/state', Float64, self.yaw_callback)
+		self.task_subscriber     	= rospy.Subscriber('/task_detected', Int16, self.task_callback)
+		
+		self.task_publisher		= rospy.Publisher('/task_detected', Int16, queue_size=10)
+		self.yawOrientation_publisher   = rospy.Publisher('/yaw_control/setpoint', Float64, queue_size=10)
+		self.visionEnable_publisher	= rospy.Publisher('/vision_enable', Bool, queue_size=10)
+		
                 # Local Variables
-                self.timer = 0
-                self.reset = False
+                self.timer        = 0
+                self.resetDepth   = 0
+		self.currYaw 	  = 0
+		self.centerYaw    = 0
+		self.taskDetected = 0
+		self.visionEnable = Bool()
+		self.visionEnable.data = False
+		self.yawSetpoint  = Float64()
+		self.turnRange	  = .79  # 45 degrees
+		self.t 		  = 0
+		
+		self.rvs 	  = 1
 
+        def depth_callback(self,msg):
+                self.resetDepth = msg.data
 
-        def reset_callback(self,msg):
+	def yaw_callback(self,msg):
+		self.currYaw = msg.data
+	
+	def task_callback(self,msg):
+		self.taskDetected = msg.data	
+	
+	def map(self, x, in_min, in_max, out_min, out_max):
+   		 return (x-in_min) * (out_max-out_min) / (in_max-in_min) + out_min
 
-                self.reset = msg.data
+	def scan(self, T, thetaStart, thetaEnd):
 
+		T = T
+		a0 = 0
+		a1 = 0
+		a2 = Decimal(3)  / Decimal(T**2)
+		a3 = Decimal(-2) / Decimal(T**3)
+	
+		s      = a0 + (a1 * self.t) + (a2 * self.t**2) + (a3 * self.t**3) 	
+		theta  = s * Decimal(abs(thetaEnd-thetaStart)) 
+		self.yawSetpoint.data  = self.map(float(theta), 0, abs(thetaEnd-thetaStart), thetaStart, thetaEnd)
+		self.yawOrientation_publisher.publish(self.yawSetpoint)
+		
+		self.t += 1
+
+		if self.t > T:
+			self.t = 0
+			self.rvs = self.rvs * -1
+			
+				
 
         def execute(self, userdata):
 
-                self.timer += 1
+                # Check for reset condition
+		if self.resetDepth < 6:
+			# Reset Local Variables
+			self.resetDepth = 0
+			self.centerYaw  = 0
+			self.currYaw    = 0
+			self.taskDetected = 0
+			self.visionEnable.data = False	
+			self.t = 0
+			self.timer = 0
+			return 'reset'
+		
+		# Perform search procedure		
+		self.timer += 1
+		
+		# Give some time to aquire center orientation
+		if self.timer < 5:
+			self.centerYaw = self.currYaw
+		else: 
+			if self.rvs == 1:
+	                	self.scan(2000, self.centerYaw + self.turnRange, self.centerYaw - self.turnRange)
+			else:
+				self.scan(2000, self.centerYaw - self.turnRange, self.centerYaw + self.turnRange)
+		
+		# Turn Computer vision on -- Allow time to reach first setpoint 
+		if self.timer >= 50 and self.timer <= 60:
+			self.visionEnable.data = True
+			self.visionEnable_publisher.publish(self.visionEnable)
 
-                if self.reset == True:
-
-                        return 'reset'
-
-                elif self.timer > 10000:
-
-                        self.timer = 0
-
-                        return 'taskfound'
-
-                else:
-
-                        return '!taskfound'
+		# Check for object detected to go to execute state
+		if self.taskDetected > 0:
+			# Reset Local Variables
+			self.resetDepth = 0
+			self.centerYaw  = 0
+			self.currYaw    = 0
+			self.taskDetected = 0
+			self.visionEnable.data = False	
+			self.t = 0
+			self.timer = 0
+			return 'taskfound'
+		else:
+			return'!taskfound'
 
 
 
@@ -251,7 +327,7 @@ class execute(smach.State):
 			self.taskEnabled  = False
 			self.enable.data  = False
 			self.taskComplete = False
-			self.task 	 = DUMMY_TASK	 # Dummy number to prevent previous task from starting again
+			self.task 	 = GATE_TASK	 # Dummy number to prevent previous task from starting again
 			return 'taskcomplete'
 
 		else: 

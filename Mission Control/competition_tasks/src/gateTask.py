@@ -60,7 +60,7 @@ desired_orientation = 1.57
 
 #amount of degrees to turn after track state
 global turn
-turn = .1
+turn = .26
 
 #depth for the buoys
 global buoy_depth
@@ -224,7 +224,7 @@ class ORIENTATION(smach.State):
 			return 'reset'
 
 
-		elif abs(self.yawPoint - self.orientation) <= 0.1 :
+		elif abs(self.yawPoint - self.orientation) <= 0.017 :
 
 			self.reset = False	                      
 			return 'continue'
@@ -376,7 +376,7 @@ class TURN(smach.State):
 			return 'reset'
 
 
-		elif abs(self.yawPoint - self.currYaw) < 0.05:
+		elif abs(self.yawPoint - self.currYaw) < 0.017:
 			self.reset = False
 			return 'pass'
 
@@ -554,7 +554,7 @@ class REORIENT(smach.State):
 			return 'reset'
 
 
-		elif abs(self.yawPoint - self.currYaw) < 0.1:
+		elif abs(self.yawPoint - self.currYaw) < 0.017:
 
 			return 'complete'
 
