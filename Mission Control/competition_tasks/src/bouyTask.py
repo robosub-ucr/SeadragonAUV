@@ -77,10 +77,11 @@ class TrackObjectState(smach.State):
 		self.has_reset = msg.data
 
 	def execute(self, userdata):
-		self.timer = self.timer + 1
 		if self.has_reset:
 			self.resetValues()
 			return 'reset'
+
+		self.timer = self.timer + 1
 
 		is_object_x_centered = self.adjust_yaw() 
 		is_object_y_centered = self.adjust_depth()
@@ -200,13 +201,15 @@ class ChangeDepthState(smach.State):
 
 
 class RotateYawState(smach.State):
-	def __init__(self, targetYaw, threshold):
+	def __init__(self, yaw_change, variance):
 		smach.State.__init__(self, outcomes=['done', 'notdone', 'reset'])
 
-		self.yaw_target = targetYaw
-		self.yaw_variance = threshold
+		self.yaw_published = False
+		self.yaw_change = yaw_change
+		self.yaw_variance = variance
+		self.yaw_target = Float64()
 
-		self.yaw_current = 0 # in degrees
+		self.yaw_current = 0 # in degrees, None if the callback hasnt triggered yet
 		rospy.Subscriber('/yaw_control/state', Float64, self.yaw_callback) # current orientation
 		self.yaw_publisher = rospy.Publisher('yaw_control/setpoint', Float64, queue_size=10) # desired orientation
 
@@ -223,42 +226,89 @@ class RotateYawState(smach.State):
 			self.resetValues()
 			return 'reset'
 
-		if self.isYawOnTarget():
-			self.resetValues()
+		if not self.yaw_published:
+			self.yaw_target.data = self.yaw_current + self.yaw_change
+			self.yaw_publisher.publish(self.yaw_target)
+			self.yaw_published = True
+			return 'notdone'
+		elif abs(self.yaw_current - self.yaw_target.data) < self.yaw_variance:
 			return 'done'
 		else:
-
 			return 'notdone'
-
-	def isYawOnTarget(self):
-		return False
-
-	def change_yaw(self, direction):
-		new_yaw = Float64()
-		new_yaw.data = direction * YAW_INCREASE
-		self.yaw_publisher.publish(new_yaw)
 
 	def resetValues(self):
 		self.yaw_current = 0
 		self.has_reset = False
+		self.yaw_published = False
 
-class ResetState(smach.State):
-	def __init__(self):
-		smach.State.__init__(self, outcomes=['restart', 'stay'])
 
-		# self.has_reset = True
-		# rospy.Subscriber('/reset', Bool, self.reset_callback)
+class MoveForwardState(smach.State):
+	def __init__(self, duration, isForward):
+		smach.State.__init__(self, outcomes=['done', 'notdone', 'reset'])
+
+		self.thrust_timer = 0
+		self.timer = 0
+		self.duration = duration
+		self.isForward = isForward
+
+		self.forward_thrust_publisher = rospy.Publisher('/yaw_pwm', Int16, queue_size=10)
+		self.forward_thrust = 0
+
+		self.has_reset = False
+		self.reset_subscriber = rospy.Subscriber('/reset', Bool, self.reset_callback)
 
 	def reset_callback(self, msg):
 		self.has_reset = msg.data
 
 	def execute(self, userdata):
-		# if self.has_reset:
-		# 	return 'stay'
-		# else:
-		# 	self.has_reset = True
-		# 	return 'restart'
-		return 'restart'
+		if self.has_reset:
+			self.resetValues()
+			return 'reset'
+
+		self.thrust_timer = self.thrust_timer + 1
+		self.timer = self.timer + 1
+
+		if self.timer >= self.duration:
+			self.resetValues()
+			return 'done'
+		else:
+			if self.isForward:
+				self.change_forward_thrust(FORWARD_THRUST_INCREASE)
+			else:
+				self.change_forward_thrust(-FORWARD_THRUST_INCREASE)
+			return 'notdone'
+
+	def change_forward_thrust(self, amount):
+		# only increase/decrease thrust every 200 ticks
+		if self.thrust_timer % 200 != 0:
+			return
+
+		# ensure thrust cannot exceed 280 or -280
+		self.forward_thrust = self.forward_thrust + amount
+		if self.forward_thrust > MAX_FORWARD_THRUST:
+			self.forward_thrust = MAX_FORWARD_THRUST
+		elif self.forward_thrust < -MAX_FORWARD_THRUST:
+			self.forward_thrust = -MAX_FORWARD_THRUST
+
+		# Publish the new forward thrust
+		new_forward_thrust = Int16()
+		new_forward_thrust.data = self.forward_thrust
+		self.forward_thrust_publisher.publish(new_forward_thrust)
+
+	def resetValues(self):
+		self.thrust_timer = 0
+		self.timer = 0
+		self.forward_thrust = 0
+		self.has_reset = False
+
+
+class ResetState(smach.State):
+	def __init__(self):
+		smach.State.__init__(self, outcomes=['done', 'notdone'])
+
+	def execute(self, userdata):
+		# currently this state does nothing
+		return 'done'
 
 
 def main():
@@ -279,11 +329,11 @@ def main():
 		'area': '/bouy_triangle_area'
 	}
 
-	TOUCH_FLAT_TIMER = 1000
-	MOVE_BACK_1_TIMER = 700
-	MOVE_FORWARD_TIMER = 2000
-	TOUCH_TRIANGLE_TIMER = 1000
-	MOVE_BACK_2_TIMER = 1400
+	TOUCH_FLAT_TIMER = 1000 # time required (in ticks) to touch the flat bouy
+	MOVE_BACK_1_TIMER = 700 # time required (in ticks) to move back, away from flat bouy
+	MOVE_FORWARD_TIMER = 2000 # time required (in ticks) to move past the flat bouy
+	TOUCH_TRIANGLE_TIMER = 1000 # time required (in ticks) to touch the triangle bouy
+	MOVE_BACK_2_TIMER = 1400 # time required (in ticks) to move back, away from triangle bouy
 
 	BOUY_ABOVE_DEPTH = 3*12 # 3 feet
 	BOUY_CENTER_DEPTH = 6*12 # 6 feet
@@ -322,7 +372,7 @@ def main():
 		smach.StateMachine.add('MOVE_TORPEDO_DEPTH', ChangeDepthState(TORPEDO_BOARD_CENTER_DEPTH, DEPTH_VARIANCE), 
 			transitions={'done':'START', 'notdone':'MOVE_TORPEDO_DEPTH', 'reset':'RESET'})
 		smach.StateMachine.add('RESET', ResetState(), 
-			transitions={'restart':'START', 'stay':'RESET'})
+			transitions={'done':'START', 'notdone':'RESET'})
 
 	outcome = sm.execute()
 	rospy.spin()

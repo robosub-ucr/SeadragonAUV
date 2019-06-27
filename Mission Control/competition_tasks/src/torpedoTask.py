@@ -195,18 +195,10 @@ class ResetState(smach.State):
 	def __init__(self):
 		smach.State.__init__(self, outcomes=['restart', 'stay'])
 
-		# self.has_reset = True
-		# rospy.Subscriber('/reset', Bool, self.reset_callback)
-
 	def reset_callback(self, msg):
 		self.has_reset = msg.data
 
 	def execute(self, userdata):
-		# if self.has_reset:
-		# 	return 'stay'
-		# else:
-		# 	self.has_reset = True
-		# 	return 'restart'
 		return 'restart'
 
 
