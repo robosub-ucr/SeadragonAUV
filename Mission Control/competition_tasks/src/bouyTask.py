@@ -223,11 +223,20 @@ class RotateYawState(smach.State):
 			self.resetValues()
 			return 'reset'
 
-		
-		return 'notdone'
+		if self.isYawOnTarget():
+			self.resetValues()
+			return 'done'
+		else:
 
-	def change_yaw(self):
+			return 'notdone'
 
+	def isYawOnTarget(self):
+		return False
+
+	def change_yaw(self, direction):
+		new_yaw = Float64()
+		new_yaw.data = direction * YAW_INCREASE
+		self.yaw_publisher.publish(new_yaw)
 
 	def resetValues(self):
 		self.yaw_current = 0
