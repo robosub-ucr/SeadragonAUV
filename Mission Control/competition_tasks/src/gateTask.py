@@ -284,18 +284,17 @@ class PASS(smach.State):
 		self.fwdThrust_publisher = rospy.Publisher('/yaw_pwm', Int16, queue_size=10)
 		self.depthPoint_publisher= rospy.Publisher('/depth_control/setpoint', Float64, queue_size=10)
 
-        # Local Variables
+		# Local Variables
 		self.fwdThrust = Int16()
 		self.fwdThrust.data = 0
 		self.timer = 0
-        self.reset = False
+		self.reset = False
 		self.depthPoint = Float64()
 
 	def reset_callback(self, msg):
 		self.reset = msg.data
 
 	def execute(self, userdata):
-		global gate_timer
 		self.timer +=1
 		if self.timer % 200 == 0:
 			if self.fwdThrust.data < 280:
