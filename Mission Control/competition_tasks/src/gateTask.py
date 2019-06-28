@@ -325,7 +325,6 @@ class SET_DEPTH(smach.State):
 		
 		# Local Variables
 		self.depth = 0
-		self.depthPoint = 0
 		self.curryaw = 0 
 		self.yawPoint = Float64()
 		self.reset = False
@@ -338,14 +337,11 @@ class SET_DEPTH(smach.State):
 		self.curryaw= msg.data
 
 	def execute(self, userdata):
-		self.depthPoint = buoy_depth 
-
 		if self.reset:
 			self.reset = False
 			return 'reset'
 
-		if abs(self.depth - self.depthPoint) < 2:
-			global turn
+		if abs(self.depth - buoy_depth) < 2:
 			self.yawPoint.data = self.curryaw + turn
 			self.yawPoint_publisher.publish(self.yawPoint)
 			self.reset = False
@@ -385,6 +381,9 @@ class REORIENT(smach.State):
 		if abs(self.yawPoint - self.currYaw) < 0.017:
 			return 'complete'
 		else: 
+# ############################### 
+# how does this state rotate yaw?
+# ###############################
 			return 'wait'	
 
 

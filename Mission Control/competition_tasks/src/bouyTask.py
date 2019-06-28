@@ -22,15 +22,15 @@ class StartState(smach.State):
 	def __init__(self):
 		smach.State.__init__(self, outcomes=['ready', 'notready'])
 
-		self.torpedo_task_enabled = False
-		rospy.Subscriber('/torpedo_enable', Bool, self.task_enable_callback)
+		self.enabled = False
+		rospy.Subscriber('/bouy_enable', Bool, self.enabled_callback)
 
-	def task_enable_callback(self, msg):
-		self.torpedo_task_enabled = msg.data
+	def enabled_callback(self, msg):
+		self.enabled = msg.data
 
 	def execute(self, userdata):
-		if self.torpedo_task_enabled:
-			self.torpedo_task_enabled = False
+		if self.enabled:
+			self.enabled = False
 			return 'ready'
 		else:
 			return 'notready'
