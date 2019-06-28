@@ -315,7 +315,7 @@ def main():
 	rospy.init_node('bouy_task_state_machine')
 	sm = smach.StateMachine(outcomes=['bouy_task_complete'])
 	sis = smach_ros.IntrospectionServer('server_name', sm, '/SM_ROOT')
-	sis.IDLE()
+	sis.start()
 
 	bouy_flat_topic = {
 		'x': '/bouy_flat_x',
