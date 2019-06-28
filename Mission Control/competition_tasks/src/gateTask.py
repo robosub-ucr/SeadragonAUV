@@ -188,13 +188,13 @@ class TRACK(smach.State):
 		self.curryaw = 0 
 		self.yawPoint = Float64()
 
-    def reset_callback(self,msg):
+	def reset_callback(self, msg):
 		self.reset = msg.data
 	def gate_x_callback(self, msg):
 		self.gate_x = msg.data
 	def gate_area_callback(self, msg):
 		self.gate_area = msg.data
-	def yaw_callback(self,msg):
+	def yaw_callback(self, msg):
 		self.currYaw = msg.data
 
 	def execute(self, userdata):
