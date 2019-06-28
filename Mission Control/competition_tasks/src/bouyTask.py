@@ -37,7 +37,7 @@ class StartState(smach.State):
 
 class TrackObjectState(smach.State):
 	def __init__(self, obj_topic, yoffset):
-		smach.State.__init__(self, outcomes=['completed', 'notcompleted', 'reset'])
+		smach.State.__init__(self, outcomes=['done', 'notdone', 'reset'])
 
 		self.yoffset = yoffset
 		self.timer = 0
@@ -93,9 +93,9 @@ class TrackObjectState(smach.State):
 		# go to next state if the object is at the center of the camera frame and within certain distace of the submarine
 		if is_object_x_centered and is_object_y_centered and is_object_area_in_threshold:
 			self.resetValues()
-			return 'completed'
+			return 'done'
 		else:
-			return 'notcompleted'
+			return 'notdone'
 
 	def resetValues(self):
 		self.object_x = 0 # in pixels
