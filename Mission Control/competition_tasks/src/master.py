@@ -26,9 +26,9 @@ TORPEDO_TASK =2
 DUMMY_TASK = 3
 
 
-class idle(smach.State):
+class IdleState(smach.State):
 	def __init__(self):
-		smach.State.__init__(self, outcomes=['go','!go'])
+		smach.State.__init__(self, outcomes=['ready','notready'])
 		
 		# Subscribers
 		self.depth_subscriber = rospy.Subscriber('/depth', Int16, self.depth_callback)		
@@ -74,16 +74,16 @@ class idle(smach.State):
 			self.systemDisabled = False
 			self.taskReset.data = False
 			self.taskReset_publisher.publish(self.taskReset)
-			return 'go'
+			return 'ready'
 
 		else:
-			return '!go'
+			return 'notready'
 
 
-class transition(smach.State):
+class TransitionState(smach.State):
 
 	def __init__(self):
-		smach.State.__init__(self, outcomes=['timeup','!timeup','reset'])
+		smach.State.__init__(self, outcomes=['done','notdone','reset'])
 
 		# Subscribers
 		self.depth_subscriber		= rospy.Subscriber('/depth', Int16, self.depth_callback) 
@@ -127,15 +127,15 @@ class transition(smach.State):
 			# Stop Sub in preparation for search
 			self.fwdThrust.data = 0
 			self.fwdThrust_publisher.publish(self.fwdThrust)
-			return 'timeup'
+			return 'done'
 
 		else:
-			return '!timeup'			
+			return 'notdone'			
 
 
-class search(smach.State):
+class SearchState(smach.State):
 	def __init__(self):
-		smach.State.__init__(self, outcomes=['taskfound','!taskfound','reset'])
+		smach.State.__init__(self, outcomes=['taskfound','notaskfound','reset'])
 
 		# Publishers, Subscribers
 		self.depth_subscriber = rospy.Subscriber('/depth', Int16, self.depth_callback) 
@@ -222,7 +222,7 @@ class search(smach.State):
 			self.visionEnable.data = True
 			self.visionEnable_publisher.publish(self.visionEnable)
 
-		# Check for object detected to go to execute state
+		# Check for object detected to ready to execute state
 		if self.taskDetected > 0:
 			# Reset Local Variables
 			self.resetDepth = 0
@@ -234,12 +234,12 @@ class search(smach.State):
 			self.timer = 0
 			return 'taskfound'
 		else:
-			return'!taskfound'
+			return'notaskfound'
 
 
-class execute(smach.State):
+class ExecuteState(smach.State):
 	def __init__(self):
-		smach.State.__init__(self, outcomes=['taskcomplete','!taskcomplete','reset'])
+		smach.State.__init__(self, outcomes=['taskcomplete','notaskcomplete','reset'])
 
 		# Subscribers
 		self.task_subscriber     = rospy.Subscriber('/task_detected', Int16, self.task_callback)
@@ -302,7 +302,7 @@ class execute(smach.State):
 			self.task 	 = GATE_TASK	 # Dummy number to prevent previous task from starting again
 			return 'taskcomplete'
 		else: 
-			return '!taskcomplete'
+			return 'notaskcomplete'
 
 
 ##-------------------------- END STATE DEFINITIONS ------------------------------------##
@@ -321,14 +321,14 @@ def main():
 	# Open SMACH container
 	with sm:
 		# Add states to the container
-		smach.StateMachine.add('IDLE', idle(), 
-					transitions = {'go':'EXECUTE','!go':'IDLE'} )
-		smach.StateMachine.add('TRANSITION', transition(),
-					transitions = {'timeup':'SEARCH','!timeup':'TRANSITION','reset':'IDLE'} )
-		smach.StateMachine.add('SEARCH', search(),
-					transitions = {'taskfound':'EXECUTE','!taskfound':'SEARCH','reset':'IDLE'} )
-		smach.StateMachine.add('EXECUTE', execute(),
-					transitions = {'taskcomplete':'TRANSITION','!taskcomplete':'EXECUTE','reset':'IDLE'} )
+		smach.StateMachine.add('IDLE', IdleState(), 
+					transitions = {'ready':'EXECUTE','notready':'IDLE'} )
+		smach.StateMachine.add('TRANSITION', TransitionState(),
+					transitions = {'done':'SEARCH','notdone':'TRANSITION','reset':'IDLE'} )
+		smach.StateMachine.add('SEARCH', SearchState(),
+					transitions = {'taskfound':'EXECUTE','notaskfound':'SEARCH','reset':'IDLE'} )
+		smach.StateMachine.add('EXECUTE', ExecuteState(),
+					transitions = {'taskcomplete':'TRANSITION','notaskcomplete':'EXECUTE','reset':'IDLE'} )
 
 	outcome = sm.execute()
 	rospy.spin()	
