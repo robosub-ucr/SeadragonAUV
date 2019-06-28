@@ -88,13 +88,13 @@ class TrackObjectState(smach.State):
 		is_object_area_in_threshold = False
 
 		if is_object_x_centered and is_object_y_centered:
-			is_object_area_in_threshold = self.adjust_position() 
+			is_object_area_in_threshold = self.adjust_position()
 
 		# go to next state if the object is at the center of the camera frame and within certain distace of the submarine
 		if is_object_x_centered and is_object_y_centered and is_object_area_in_threshold:
 			self.resetValues()
 			return 'completed'
-		elif:
+		else:
 			return 'notcompleted'
 
 	def resetValues(self):
