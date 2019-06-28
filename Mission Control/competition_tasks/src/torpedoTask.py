@@ -17,6 +17,7 @@ AREA_THRESHOLD_LOW = 0.85
 AREA_THRESHOLD_HIGH = 0.90
 TORPEDO_Y_OFFSET = 10
 MAX_FORWARD_THRUST= 280
+WAIT_TIME = 10000
 
 class StartState(smach.State):
 	def __init__(self):
@@ -252,7 +253,7 @@ def main():
 			transitions={'done':'SHOOT', 'notdone':'TRACK_HEART', 'reset':'RESET'})
 		smach.StateMachine.add('SHOOT', ShootTorpedoState(), 
 			transitions={'done':'WAIT', 'notdone':'SHOOT', 'reset':'RESET'})
-		smach.StateMachine.add('WAIT', ShootTorpedoState(), 
+		smach.StateMachine.add('WAIT', TimedWaitState(WAIT_TIME), 
 			transitions={'done':'START', 'notdone':'WAIT', 'reset':'RESET'})
 		smach.StateMachine.add('RESET', ResetState(), 
 			transitions={'restart':'START', 'stay':'RESET'})
