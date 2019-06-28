@@ -50,7 +50,7 @@ from std_msgs.msg import Bool, Float64, Int16
 depth_start = 18 #depth is in inches
 desired_orientation = 1.57 # will change acording to direction of gate
 turn = .26 # degrees to turn after track state
-buoy_depth = 36 #  depth (in inches) for the buoys
+buoy_depth = 36 # depth (in inches) for the buoys
 gate_timer = 10000 #time to pass gate
 
 ##------------------------- STATE DEFINITIONS -----------------------------------##
@@ -59,20 +59,20 @@ class init(smach.State):
 	def __init__(self):
 		smach.State.__init__(self, outcomes=['start','wait'])
 
-		self.gateEnable_subscriber    = rospy.Subscriber('/gate_enable', Bool, self.task_callback)	
+		self.gateEnable_subscriber = rospy.Subscriber('/gate_enable', Bool, self.task_callback)	
 		self.gateEnabled = False		
-		self.depthPoint_publisher     = rospy.Publisher('/depth_control/setpoint', Float64, queue_size=10)
+		self.depthPoint_publisher = rospy.Publisher('/depth_control/setpoint', Float64, queue_size=10)
 		self.depthPoint = Float64()
 		self.depthPidEnable_publisher = rospy.Publisher('/depth_control/pid_enable', Bool, queue_size=10)
 		self.depthEnable = Bool()	
 
 	def task_callback(self, msg):
 		self.gateEnabled = msg.data	
-    
+
 	def execute(self, userdata):
 		# Push down about two inches to start state machine
 		if self.gateEnabled:
-			# Set depth setpoint FIXME 48 - 4ft   120 - 10ft
+			# Set depth setpoint FIXME 48 - 4ft, 120 - 10ft
 			self.depthPoint.data = depth_start
 			self.depthPoint_publisher.publish(self.depthPoint)
 			# Enable depth pid
@@ -91,11 +91,11 @@ class DIVE(smach.State):
 		smach.State.__init__(self, outcomes=['ready','notready', 'reset'])
 	
 		self.currDepth_subscriber	= rospy.Subscriber('/depth', Int16, self.depth_callback)
-		self.currDepth      = 0
+		self.currDepth = 0
 		global depth_start
 		self.depthPoint = depth_start
 
-		self.yawPoint_publisher     = rospy.Publisher('/yaw_control/setpoint', Float64, queue_size=10)
+		self.yawPoint_publisher = rospy.Publisher('/yaw_control/setpoint', Float64, queue_size=10)
 		self.yawPoint = Float64()
 	
 		self.yawPidEnable_publisher = rospy.Publisher('/yaw_control/pid_enable', Bool, queue_size=10)
@@ -159,7 +159,7 @@ class ORIENTATION(smach.State):
 			return 'reset'
 
 		if abs(self.yawPoint - self.orientation) <= 0.017 :
-			self.reset = False	                      
+			self.reset = False
 			return 'continue'
 		else:
 			return 'wait'
@@ -171,7 +171,7 @@ class TRACK(smach.State):
 
 		self.timer = 0
 		#Subscribers and publishers
-		self.reset_subscriber   = rospy.Subscriber('/reset', Bool, self.reset_callback)
+		self.reset_subscriber = rospy.Subscriber('/reset', Bool, self.reset_callback)
 		self.curryaw_subscriber = rospy.Subscriber('/yaw_control/state', Float64, self.yaw_callback) 
 		self.yawPoint_publisher = rospy.Publisher('/yaw_control/setpoint', Float64, queue_size=10) 
 
@@ -247,14 +247,14 @@ class TURN(smach.State):
 		smach.State.__init__(self, outcomes=['pass','wait', 'reset'])
 
 		#Subscribers and Publishers
-		self.reset_subscriber   = rospy.Subscriber('/reset', Bool, self.reset_callback)
+		self.reset_subscriber = rospy.Subscriber('/reset', Bool, self.reset_callback)
 		self.curryaw_subscriber = rospy.Subscriber('/yaw_control/state', Float64, self.yaw_callback)
 		self.yawPoint_subscriber= rospy.Subscriber('/yaw_control/setpoint',Float64, self.yawPoint_callback)
 
 		# Local Variables
 		self.currYaw = 0
 		self.yawPoint = 0
-        self.reset = False
+		self.reset = False
 
 	def reset_callback(self,msg):
 		self.reset = msg.data
@@ -280,7 +280,7 @@ class PASS(smach.State):
 	def __init__(self):
 		smach.State.__init__(self, outcomes=['timer','wait', 'reset'])
 
-		self.reset_subscriber    = rospy.Subscriber('/reset', Bool, self.reset_callback)
+		self.reset_subscriber = rospy.Subscriber('/reset', Bool, self.reset_callback)
 		self.fwdThrust_publisher = rospy.Publisher('/yaw_pwm', Int16, queue_size=10)
 		self.depthPoint_publisher= rospy.Publisher('/depth_control/setpoint', Float64, queue_size=10)
 
@@ -365,7 +365,7 @@ class REORIENT(smach.State):
 		smach.State.__init__(self, outcomes=['complete','wait', 'reset'])
 
 		#Subscribers and Publishers
-		self.reset_subscriber   = rospy.Subscriber('/reset', Bool, self.reset_callback)
+		self.reset_subscriber = rospy.Subscriber('/reset', Bool, self.reset_callback)
 		self.curryaw_subscriber = rospy.Subscriber('/yaw_control/state', Float64, self.yaw_callback)
 		self.yawPoint_subscriber= rospy.Subscriber('/yaw_control/setpoint',Float64, self.yawPoint_callback)
 		
