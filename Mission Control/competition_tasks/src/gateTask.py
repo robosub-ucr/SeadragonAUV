@@ -49,7 +49,7 @@ from std_msgs.msg import Bool, Float64, Int16
 
 depth_start = 18 #depth is in inches
 desired_orientation = 1.57 # will change acording to direction of gate
-turn = .26 # degrees to turn after track state
+turn = 0.26 # degrees to turn after track state
 buoy_depth = 36 # depth (in inches) for the buoys
 gate_timer = 10000 #time to pass gate
 
@@ -85,14 +85,11 @@ class init(smach.State):
 
 
 class DIVE(smach.State):
-
 	def __init__(self):
-
 		smach.State.__init__(self, outcomes=['ready','notready', 'reset'])
 	
 		self.currDepth_subscriber	= rospy.Subscriber('/depth', Int16, self.depth_callback)
 		self.currDepth = 0
-		global depth_start
 		self.depthPoint = depth_start
 
 		self.yawPoint_publisher = rospy.Publisher('/yaw_control/setpoint', Float64, queue_size=10)
@@ -106,13 +103,10 @@ class DIVE(smach.State):
 	
 	def depth_callback(self, msg):
 		self.currDepth = msg.data
-
 	def reset_callback(self, msg):
 		self.reset = msg.data
 
-
 	def execute(self, userdata):
-
 		#rospy.loginfo('Executing state dive')
 		print("current depth: ", self.currDepth, "depth setpoint:", self.depthPoint)
 
@@ -131,9 +125,6 @@ class DIVE(smach.State):
 			self.reset = False
 			return 'ready'			
 
-
-
-# Define State B
 
 class ORIENTATION(smach.State):
 	def __init__(self):
@@ -273,6 +264,9 @@ class TURN(smach.State):
 			self.reset = False
 			return 'pass'
 		else: 
+# ############################### 
+# how does this state rotate yaw?
+# ###############################
 			return 'wait'
 
 

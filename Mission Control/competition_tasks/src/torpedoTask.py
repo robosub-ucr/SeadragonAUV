@@ -37,7 +37,7 @@ class StartState(smach.State):
 
 class TrackObjectState(smach.State):
 	def __init__(self, obj_topic, yoffset):
-		smach.State.__init__(self, outcomes=['completed', 'notcompleted', 'reset', '001', '010', '011', '100', '101', '110'])
+		smach.State.__init__(self, outcomes=['done', 'notdone', 'reset'])
 
 		self.yoffset = yoffset
 		self.timer = 0
@@ -92,21 +92,9 @@ class TrackObjectState(smach.State):
 		# go to next state if the object is at the center of the camera frame and within certain distace of the submarine
 		if is_object_x_centered and is_object_y_centered and is_object_area_in_threshold:
 			self.resetValues()
-			return 'completed'
-		elif not is_object_y_centered and not is_object_y_centered and is_object_area_in_threshold:
-			return '001'
-		elif not is_object_y_centered and is_object_y_centered and not is_object_area_in_threshold:
-			return '010'
-		elif not is_object_y_centered and is_object_y_centered and is_object_area_in_threshold:
-			return '011'
-		elif is_object_y_centered and not is_object_y_centered and not is_object_area_in_threshold:
-			return '100'
-		elif is_object_y_centered and not is_object_y_centered and is_object_area_in_threshold:
-			return '101'
-		elif is_object_y_centered and is_object_y_centered and not is_object_area_in_threshold:
-			return '110'
+			return 'done'
 		else:
-			return 'notcompleted'
+			return 'notdone'
 
 	def resetValues(self):
 		self.object_x = 0 # in pixels
@@ -117,7 +105,6 @@ class TrackObjectState(smach.State):
 		self.forward_thrust = 0
 		self.has_reset = False
 		self.timer = 0
-
 
 	def adjust_yaw(self):
 		# rotate yaw until x is within center +/- padding
@@ -178,18 +165,54 @@ class TrackObjectState(smach.State):
 
 class ShootTorpedoState(smach.State):
 	def __init__(self):
-		smach.State.__init__(self, outcomes=['completed', 'notcompleted', 'reset'])
+		smach.State.__init__(self, outcomes=['done', 'notdone', 'reset'])
 
 		self.torpedo_shoot_publisher = rospy.Publisher('/torpedo_shoot', Bool, queue_size=10)
-		self.task_complete_publisher = rospy.Publisher('/task_complete', Bool, queue_size=10)
 
 	def execute(self, userdata):
+		# TODO: add 5 second delay before moving onto next state
+		
+		# Send True, followed by False. To shoot the torpedo once
 		shoot = Bool()
 		shoot.data = True
-		self.torpedo_shoot_publisher.publish(shoot) # publishes True
-		self.task_complete_publisher.publish(shoot)
-		return 'completed'
+		self.torpedo_shoot_publisher.publish(shoot)
+		shoot.data = False
+		self.torpedo_shoot_publisher.publish(shoot)
+		return 'done'
 
+class TimedWaitState(smach.State):
+	def __init__(self, wait_time):
+		smach.State.__init__(self, outcomes=['done', 'notdone', 'reset'])
+
+		self.timer = 0
+		self.wait_time = wait_time
+
+		self.task_complete_publisher = rospy.Publisher('/task_complete', Bool, queue_size=10)
+
+		self.has_reset = False
+		self.reset_subscriber = rospy.Subscriber('/reset', Bool, self.reset_callback)
+
+	def reset_callback(self, msg):
+		self.has_reset = msg.data
+
+	def execute(self, userdata):
+		if self.has_reset:
+			self.resetValues()
+			return 'reset'
+
+		self.timer += 1
+		if self.timer >= self.wait_time:
+			task_completed = Bool()
+			task_completed.data = True
+			self.task_complete_publisher.publish(task_completed)
+			self.resetValues()
+			return 'done'
+		else:
+			return 'notdone'
+
+	def resetValues(self):
+		self.timer = 0
+		self.has_reset = False
 
 class ResetState(smach.State):
 	def __init__(self):
@@ -221,11 +244,18 @@ def main():
 	}
 
 	with sm:
-		smach.StateMachine.add('StartState', StartState(), transitions={'ready':'TrackBoardState', 'notready':'StartState'})
-		smach.StateMachine.add('TrackBoardState', TrackObjectState(board_topic, 0), transitions={'completed':'TrackHeartState', 'notcompleted':'TrackBoardState', 'reset':'ResetState', '001':'TrackBoardState', '010':'TrackBoardState', '011':'TrackBoardState', '100':'TrackBoardState', '101':'TrackBoardState', '110':'TrackBoardState'})
-		smach.StateMachine.add('TrackHeartState', TrackObjectState(heart_topic, TORPEDO_Y_OFFSET), transitions={'completed':'ShootTorpedoState', 'notcompleted':'TrackHeartState', 'reset':'ResetState', '001':'TrackHeartState', '010':'TrackHeartState', '011':'TrackHeartState', '100':'TrackHeartState', '101':'TrackHeartState', '110':'TrackHeartState'})
-		smach.StateMachine.add('ShootTorpedoState', ShootTorpedoState(), transitions={'completed':'StartState', 'notcompleted':'ShootTorpedoState', 'reset':'ResetState'})
-		smach.StateMachine.add('ResetState', ResetState(), transitions={'restart':'StartState', 'stay':'ResetState'})
+		smach.StateMachine.add('START', StartState(), 
+			transitions={'ready':'TRACK_BOARD', 'notready':'START'})
+		smach.StateMachine.add('TRACK_BOARD', TrackObjectState(board_topic, 0), 
+			transitions={'done':'TRACK_HEART', 'notdone':'TRACK_BOARD', 'reset':'RESET'})
+		smach.StateMachine.add('TRACK_HEART', TrackObjectState(heart_topic, TORPEDO_Y_OFFSET), 
+			transitions={'done':'SHOOT', 'notdone':'TRACK_HEART', 'reset':'RESET'})
+		smach.StateMachine.add('SHOOT', ShootTorpedoState(), 
+			transitions={'done':'WAIT', 'notdone':'SHOOT', 'reset':'RESET'})
+		smach.StateMachine.add('WAIT', ShootTorpedoState(), 
+			transitions={'done':'START', 'notdone':'WAIT', 'reset':'RESET'})
+		smach.StateMachine.add('RESET', ResetState(), 
+			transitions={'restart':'START', 'stay':'RESET'})
 
 	outcome = sm.execute()
 	rospy.spin()
