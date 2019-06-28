@@ -154,9 +154,8 @@ class DIVE(smach.State):
 
 	def execute(self, userdata):
 
-		rospy.loginfo('Executing state dive')
-		print self.currDepth
-		print self.depthPoint
+		#rospy.loginfo('Executing state dive')
+		print("current depth: ", self.currDepth, "depth setpoint:", self.depthPoint)
 
 		if self.reset == True:
 			self.reset = False
