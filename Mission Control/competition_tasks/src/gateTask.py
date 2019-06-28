@@ -41,74 +41,38 @@
 ##------------------------------- IMPORTS ---------------------------------------##
 
 import rospy
-
 import smach
-
 import smach_ros
-
 from std_msgs.msg import Bool, Float64, Int16
 
 ##----------------------------- END IMPORTS -------------------------------------##
 
-#depth is in inches
-global depth_start
-depth_start = 18
-
-#will change acording to direction of gate
-global desired_orientation
-desired_orientation = 1.57
-
-#amount of degrees to turn after track state
-global turn
-turn = .26
-
-#depth for the buoys
-global buoy_depth
-buoy_depth = 36 #inches
-
-#time to pass gate
-global gate_timer
-gate_timer = 10000
+depth_start = 18 #depth is in inches
+desired_orientation = 1.57 # will change acording to direction of gate
+turn = .26 # degrees to turn after track state
+buoy_depth = 36 #  depth (in inches) for the buoys
+gate_timer = 10000 #time to pass gate
 
 ##------------------------- STATE DEFINITIONS -----------------------------------##
 
-
-
-# Define State Init
-
 class init(smach.State):
-
 	def __init__(self):
-
 		smach.State.__init__(self, outcomes=['start','wait'])
 
 		self.gateEnable_subscriber    = rospy.Subscriber('/gate_enable', Bool, self.task_callback)	
 		self.gateEnabled = False		
-		
-	
 		self.depthPoint_publisher     = rospy.Publisher('/depth_control/setpoint', Float64, queue_size=10)
 		self.depthPoint = Float64()
-	
 		self.depthPidEnable_publisher = rospy.Publisher('/depth_control/pid_enable', Bool, queue_size=10)
 		self.depthEnable = Bool()	
 
-		
-    
-    	def task_callback(self, msg):
+	def task_callback(self, msg):
 		self.gateEnabled = msg.data	
     
-	
-
 	def execute(self, userdata):
-
-	
-
 		# Push down about two inches to start state machine
-		if self.gateEnabled == True:
-			
-	
+		if self.gateEnabled:
 			# Set depth setpoint FIXME 48 - 4ft   120 - 10ft
-			global depth_start
 			self.depthPoint.data = depth_start
 			self.depthPoint_publisher.publish(self.depthPoint)
 			# Enable depth pid
@@ -116,14 +80,9 @@ class init(smach.State):
 			self.depthPidEnable_publisher.publish(self.depthEnable)
 			self.gateEnabled = False
 			return 'start'
-
 		else:
-
 			return 'wait'
 
-
-
-# Define State A
 
 class DIVE(smach.State):
 
@@ -163,10 +122,7 @@ class DIVE(smach.State):
 
 		if abs(self.depthPoint - self.currDepth) > 2:
 			return 'notready'
-
 		else:
-
-			global desired_orientation
 			self.yawPoint.data = desired_orientation
 			self.yawPoint_publisher.publish(self.yawPoint)
 			# Enable depth pid
@@ -423,173 +379,85 @@ class REORIENT(smach.State):
 		self.reset = msg.data
 	def yaw_callback(self,msg):
 		self.currYaw = msg.data
-
 	def yawPoint_callback(self,msg):
 		self.yawPoint = msg.data
 
 	def execute(self, userdata):
-		print self.currYaw
+		print(self.currYaw)
 		
-		if self.reset == True:
+		if self.reset:
 			self.reset = False
 			return 'reset'
 
-
-		elif abs(self.yawPoint - self.currYaw) < 0.017:
-
+		if abs(self.yawPoint - self.currYaw) < 0.017:
 			return 'complete'
-
 		else: 
-
 			return 'wait'	
 
 
-
 class COMPLETED(smach.State):
-
 	def __init__(self):
-
 		smach.State.__init__(self, outcomes=['done'])
 
-		
-
 		self.taskComplete_publisher = rospy.Publisher('/task_complete', Bool, queue_size=10)
-		
-
-
-
+	
 	def execute(self, userdata):
-
-		
 		taskComplete = True
 		self.taskComplete_publisher.publish(taskComplete)
-
 		return 'done'
-
-						
-
 
 
 class RESET(smach.State):
-
 	def __init__(self):
-
 		smach.State.__init__(self, outcomes=['restart'])
 
-		
-
-
-
-	
-
 	def execute(self, userdata):
-
-
-
-
-
 		return 'restart'
-
-
-
-		
-
-
-
 
 
 ##-------------------------- END STATE DEFINITIONS ------------------------------------##
 
-
-
-
-
 def main():
-
 	# Initialize node with desired node name - ideally task name
-
 	rospy.init_node('gateTask')
 
-
-
 	# Create a SMACH state machine
-
 	sm = smach.StateMachine(outcomes=['task_complete'])
 
-
-
 	# Create and start introspection server - fancy way of saying view gui feature
-
 	sis = smach_ros.IntrospectionServer('server_name', sm, '/SM_ROOT')
-
 	sis.start()
 
-
-
 	# Open SMACH container
-
 	with sm:
-
 		# Add states to the container
-
 		smach.StateMachine.add('INIT', init(), 
-
 					transitions={'wait':'INIT','start':'DIVE'})
-
 		smach.StateMachine.add('DIVE', DIVE(),
-
 					transitions={'notready':'DIVE','ready':'ORIENTATION', 'reset':'RESET'})
-
 		smach.StateMachine.add('ORIENTATION', ORIENTATION(),
-
 					transitions={'wait':'ORIENTATION','continue':'TRACK', 'reset':'RESET'})	
-
 		smach.StateMachine.add('TRACK',TRACK(),
-
 					transitions ={'area>90':'TURN','track':'TRACK', 'reset':'RESET'})
-
 		smach.StateMachine.add('TURN', TURN(),
 					transitions ={'reset':'RESET', 'pass':'PASS', 'wait':'TURN'})
-
 		smach.StateMachine.add('PASS',PASS(),
-
 					transitions ={'wait':'PASS','timer':'SET_DEPTH', 'reset':'RESET'})
-
 		smach.StateMachine.add('SET_DEPTH',SET_DEPTH(),
-
 					transitions ={'depth':'REORIENT','wait':'SET_DEPTH', 'reset':'RESET'})
-
 		smach.StateMachine.add('REORIENT', REORIENT(),
 					transitions ={'reset':'RESET', 'complete':'COMPLETED', 'wait':'REORIENT'})
-
 		smach.StateMachine.add('COMPLETED',COMPLETED(),
-
 					transitions ={'done':'INIT'})
-
 		smach.StateMachine.add('RESET',RESET(),
-
 					transitions ={'restart':'INIT'})
 
 	# Execute State Machine
-
 	outcome = sm.execute()
 
-	
-
 	# Spin node - fancy way of saying run code in a loop
-
 	rospy.spin()
-
 	sis.stop()
 
-	
-
-
-
 if __name__ == '__main__':
-
 	main()
-
-
-
-
