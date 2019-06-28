@@ -57,7 +57,7 @@ gate_timer = 10000 #time to pass gate
 
 class IDLE(smach.State):
 	def __init__(self):
-		smach.State.__init__(self, outcomes=['start','wait'])
+		smach.State.__init__(self, outcomes=['ready','notready'])
 
 		self.gateEnable_subscriber = rospy.Subscriber('/gate_enable', Bool, self.task_callback)	
 		self.gateEnabled = False		
@@ -79,9 +79,9 @@ class IDLE(smach.State):
 			self.depthEnable.data = True
 			self.depthPidEnable_publisher.publish(self.depthEnable)
 			self.gateEnabled = False
-			return 'start'
+			return 'ready'
 		else:
-			return 'wait'
+			return 'notready'
 
 
 class DIVE(smach.State):
@@ -424,7 +424,7 @@ def main():
 	with sm:
 		# Add states to the container
 		smach.StateMachine.add('IDLE', IDLE(), 
-					transitions={'wait':'IDLE','start':'DIVE'})
+					transitions={'notready':'IDLE','ready':'DIVE'})
 		smach.StateMachine.add('DIVE', DIVE(),
 					transitions={'notready':'DIVE','ready':'ORIENTATION', 'reset':'RESET'})
 		smach.StateMachine.add('ORIENTATION', ORIENTATION(),
