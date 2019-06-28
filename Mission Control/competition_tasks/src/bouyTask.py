@@ -211,7 +211,7 @@ class RotateYawState(smach.State):
 
 		self.yaw_current = 0 # in degrees, None if the callback hasnt triggered yet
 		rospy.Subscriber('/yaw_control/state', Float64, self.yaw_callback) # current orientation
-		self.yaw_publisher = rospy.Publisher('yaw_control/setpoint', Float64, queue_size=10) # desired orientation
+		self.yaw_publisher = rospy.Publisher('/yaw_control/setpoint', Float64, queue_size=10) # desired orientation
 
 		self.has_reset = False
 		self.reset_subscriber = rospy.Subscriber('/reset', Bool, self.reset_callback)
@@ -312,8 +312,8 @@ class ResetState(smach.State):
 
 
 def main():
-	rospy.init_node('torpedo_task_state_machine')
-	sm = smach.StateMachine(outcomes=['torpedo_task_complete'])
+	rospy.init_node('bouy_task_state_machine')
+	sm = smach.StateMachine(outcomes=['bouy_task_complete'])
 	sis = smach_ros.IntrospectionServer('server_name', sm, '/SM_ROOT')
 	sis.start()
 
