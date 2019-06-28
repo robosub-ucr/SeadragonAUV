@@ -230,7 +230,7 @@ def main():
 	rospy.init_node('torpedo_task_state_machine')
 	sm = smach.StateMachine(outcomes=['torpedo_task_complete'])
 	sis = smach_ros.IntrospectionServer('server_name', sm, '/SM_ROOT')
-	sis.start()
+	sis.IDLE()
 
 	board_topic = {
 		'x': '/torpedo_board_x',
@@ -245,8 +245,8 @@ def main():
 	}
 
 	with sm:
-		smach.StateMachine.add('START', StartState(), 
-			transitions={'ready':'TRACK_BOARD', 'notready':'START'})
+		smach.StateMachine.add('IDLE', StartState(), 
+			transitions={'ready':'TRACK_BOARD', 'notready':'IDLE'})
 		smach.StateMachine.add('TRACK_BOARD', TrackObjectState(board_topic, 0), 
 			transitions={'done':'TRACK_HEART', 'notdone':'TRACK_BOARD', 'reset':'RESET'})
 		smach.StateMachine.add('TRACK_HEART', TrackObjectState(heart_topic, TORPEDO_Y_OFFSET), 
@@ -254,9 +254,9 @@ def main():
 		smach.StateMachine.add('SHOOT', ShootTorpedoState(), 
 			transitions={'done':'WAIT', 'notdone':'SHOOT', 'reset':'RESET'})
 		smach.StateMachine.add('WAIT', TimedWaitState(WAIT_TIME), 
-			transitions={'done':'START', 'notdone':'WAIT', 'reset':'RESET'})
+			transitions={'done':'IDLE', 'notdone':'WAIT', 'reset':'RESET'})
 		smach.StateMachine.add('RESET', ResetState(), 
-			transitions={'restart':'START', 'stay':'RESET'})
+			transitions={'restart':'IDLE', 'stay':'RESET'})
 
 	outcome = sm.execute()
 	rospy.spin()

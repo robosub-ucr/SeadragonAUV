@@ -315,7 +315,7 @@ def main():
 	rospy.init_node('bouy_task_state_machine')
 	sm = smach.StateMachine(outcomes=['bouy_task_complete'])
 	sis = smach_ros.IntrospectionServer('server_name', sm, '/SM_ROOT')
-	sis.start()
+	sis.IDLE()
 
 	bouy_flat_topic = {
 		'x': '/bouy_flat_x',
@@ -345,8 +345,8 @@ def main():
 	YAW_VARIANCE = 0.1 # in radians
 
 	with sm:
-		smach.StateMachine.add('START', StartState(), 
-			transitions={'ready':'TRACK_FLAT', 'notready':'START'})
+		smach.StateMachine.add('IDLE', StartState(), 
+			transitions={'ready':'TRACK_FLAT', 'notready':'IDLE'})
 		smach.StateMachine.add('TRACK_FLAT', TrackObjectState(bouy_flat_topic, 0), 
 			transitions={'done':'TOUCH_FLAT', 'notdone':'TRACK_FLAT', 'reset':'RESET'})
 		smach.StateMachine.add('TOUCH_FLAT', MoveForwardState(TOUCH_FLAT_TIMER, True), 
@@ -370,9 +370,9 @@ def main():
 		smach.StateMachine.add('FACE_TORPEDO_TASK', RotateYawState(YAW_TORPEDO_TASK, YAW_VARIANCE), 
 			transitions={'done':'MOVE_TORPEDO_DEPTH', 'notdone':'FACE_TORPEDO_TASK', 'reset':'RESET'})
 		smach.StateMachine.add('MOVE_TORPEDO_DEPTH', ChangeDepthState(TORPEDO_BOARD_CENTER_DEPTH, DEPTH_VARIANCE), 
-			transitions={'done':'START', 'notdone':'MOVE_TORPEDO_DEPTH', 'reset':'RESET'})
+			transitions={'done':'IDLE', 'notdone':'MOVE_TORPEDO_DEPTH', 'reset':'RESET'})
 		smach.StateMachine.add('RESET', ResetState(), 
-			transitions={'done':'START', 'notdone':'RESET'})
+			transitions={'done':'IDLE', 'notdone':'RESET'})
 
 	outcome = sm.execute()
 	rospy.spin()

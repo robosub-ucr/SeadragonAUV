@@ -55,7 +55,7 @@ gate_timer = 10000 #time to pass gate
 
 ##------------------------- STATE DEFINITIONS -----------------------------------##
 
-class init(smach.State):
+class IDLE(smach.State):
 	def __init__(self):
 		smach.State.__init__(self, outcomes=['start','wait'])
 
@@ -423,8 +423,8 @@ def main():
 	# Open SMACH container
 	with sm:
 		# Add states to the container
-		smach.StateMachine.add('INIT', init(), 
-					transitions={'wait':'INIT','start':'DIVE'})
+		smach.StateMachine.add('IDLE', IDLE(), 
+					transitions={'wait':'IDLE','start':'DIVE'})
 		smach.StateMachine.add('DIVE', DIVE(),
 					transitions={'notready':'DIVE','ready':'ORIENTATION', 'reset':'RESET'})
 		smach.StateMachine.add('ORIENTATION', ORIENTATION(),
@@ -440,9 +440,9 @@ def main():
 		smach.StateMachine.add('REORIENT', REORIENT(),
 					transitions ={'reset':'RESET', 'complete':'COMPLETED', 'wait':'REORIENT'})
 		smach.StateMachine.add('COMPLETED',COMPLETED(),
-					transitions ={'done':'INIT'})
+					transitions ={'done':'IDLE'})
 		smach.StateMachine.add('RESET',RESET(),
-					transitions ={'restart':'INIT'})
+					transitions ={'restart':'IDLE'})
 
 	# Execute State Machine
 	outcome = sm.execute()
