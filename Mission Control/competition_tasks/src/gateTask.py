@@ -369,10 +369,10 @@ class REORIENT(smach.State):
 		self.curryaw_subscriber = rospy.Subscriber('/yaw_control/state', Float64, self.yaw_callback)
 		self.yawPoint_subscriber= rospy.Subscriber('/yaw_control/setpoint',Float64, self.yawPoint_callback)
 		
-	# Local Variables
-	self.currYaw = 0
-	self.yawPoint = 0
-	self.reset = False
+		# Local Variables
+		self.currYaw = 0
+		self.yawPoint = 0
+		self.reset = False
 
 	def reset_callback(self,msg):
 		self.reset = msg.data
