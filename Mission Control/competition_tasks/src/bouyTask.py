@@ -94,7 +94,7 @@ class TrackObjectState(smach.State):
 		if is_object_x_centered and is_object_y_centered and is_object_area_in_threshold:
 			self.resetValues()
 			return 'completed'
-		elif
+		elif:
 			return 'notcompleted'
 
 	def resetValues(self):

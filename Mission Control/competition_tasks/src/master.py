@@ -9,7 +9,6 @@ from decimal import *
 import matplotlib.pyplot as plt
 
 import math
-
 import numpy as np
 import rospy
 import smach
@@ -26,12 +25,9 @@ BUOY_TASK = 1
 TORPEDO_TASK =2
 DUMMY_TASK = 3
 
-# Define State idle
 
 class idle(smach.State):
-
 	def __init__(self):
-
 		smach.State.__init__(self, outcomes=['go','!go'])
 		
 		# Subscribers
@@ -84,13 +80,9 @@ class idle(smach.State):
 			return '!go'
 
 
-
-# Define State Transition
-
 class transition(smach.State):
 
 	def __init__(self):
-
 		smach.State.__init__(self, outcomes=['timeup','!timeup','reset'])
 
 		# Subscribers
@@ -110,16 +102,10 @@ class transition(smach.State):
 		self.timer = 0
 		self.resetDepth = 0
 		
-
-
 	def depth_callback(self,msg):
-
 		self.resetDepth = msg.data
 
-
-
 	def execute(self, userdata):
-		
 		self.light_publisher.publish(self.light)
 		self.timer += 1
 
@@ -147,30 +133,25 @@ class transition(smach.State):
 			return '!timeup'			
 
 
-
-# Define State Search
-
 class search(smach.State):
+	def __init__(self):
+		smach.State.__init__(self, outcomes=['taskfound','!taskfound','reset'])
 
-        def __init__(self):
-
-                smach.State.__init__(self, outcomes=['taskfound','!taskfound','reset'])
-
-                # Publishers, Subscribers
-		self.depth_subscriber		= rospy.Subscriber('/depth', Int16, self.depth_callback) 
-		self.yaw_subscriber		= rospy.Subscriber('/yaw_control/state', Float64, self.yaw_callback)
-		self.task_subscriber     	= rospy.Subscriber('/task_detected', Int16, self.task_callback)
+		# Publishers, Subscribers
+		self.depth_subscriber = rospy.Subscriber('/depth', Int16, self.depth_callback) 
+		self.yaw_subscriber = rospy.Subscriber('/yaw_control/state', Float64, self.yaw_callback)
+		self.task_subscriber = rospy.Subscriber('/task_detected', Int16, self.task_callback)
 		
-		self.task_publisher		= rospy.Publisher('/task_detected', Int16, queue_size=10)
-		self.yawOrientation_publisher   = rospy.Publisher('/yaw_control/setpoint', Float64, queue_size=10)
+		self.task_publisher = rospy.Publisher('/task_detected', Int16, queue_size=10)
+		self.yawOrientation_publisher = rospy.Publisher('/yaw_control/setpoint', Float64, queue_size=10)
 		self.visionEnable_publisher	= rospy.Publisher('/vision_enable', Bool, queue_size=10)
-		self.light_publisher		= rospy.Publisher('light_state', Int16, queue_size=10)
+		self.light_publisher = rospy.Publisher('light_state', Int16, queue_size=10)
 		
-                # Local Variables
-		self.light			= Int16()
-		self.light.data			= 2
-                self.timer        = 0
-                self.resetDepth   = 0
+		# Local Variables
+		self.light = Int16()
+		self.light.data = 2
+		self.timer = 0
+		self.resetDepth   = 0
 		self.currYaw 	  = 0
 		self.centerYaw    = 0
 		self.taskDetected = 0
@@ -182,12 +163,10 @@ class search(smach.State):
 		
 		self.rvs 	  = 1
 
-        def depth_callback(self,msg):
-                self.resetDepth = msg.data
-
+	def depth_callback(self,msg):
+		self.resetDepth = msg.data
 	def yaw_callback(self,msg):
 		self.currYaw = msg.data
-	
 	def task_callback(self,msg):
 		self.taskDetected = msg.data	
 	
@@ -195,8 +174,7 @@ class search(smach.State):
    		 return (x-in_min) * (out_max-out_min) / (in_max-in_min) + out_min
 
 	def scan(self, T, thetaStart, thetaEnd):
-
-		T = T
+		#T = T
 		a0 = 0
 		a1 = 0
 		a2 = Decimal(3)  / Decimal(T**2)
@@ -212,14 +190,10 @@ class search(smach.State):
 		if self.t > T:
 			self.t = 0
 			self.rvs = self.rvs * -1
-			
-				
 
-        def execute(self, userdata):
-
-
+	def execute(self, userdata):
 		self.light_publisher.publish(self.light)
-                # Check for reset condition
+		# Check for reset condition
 		if self.resetDepth < 6:
 			# Reset Local Variables
 			self.resetDepth = 0
@@ -239,7 +213,7 @@ class search(smach.State):
 			self.centerYaw = self.currYaw
 		else: 
 			if self.rvs == 1:
-	                	self.scan(2000, self.centerYaw + self.turnRange, self.centerYaw - self.turnRange)
+				self.scan(2000, self.centerYaw + self.turnRange, self.centerYaw - self.turnRange)
 			else:
 				self.scan(2000, self.centerYaw - self.turnRange, self.centerYaw + self.turnRange)
 		
@@ -263,13 +237,8 @@ class search(smach.State):
 			return'!taskfound'
 
 
-
-# Define State Execute
-
 class execute(smach.State):
-
 	def __init__(self):
-
 		smach.State.__init__(self, outcomes=['taskcomplete','!taskcomplete','reset'])
 
 		# Subscribers
@@ -286,47 +255,32 @@ class execute(smach.State):
 		self.light_publisher	 = rospy.Publisher('light_state', Int16, queue_size=10)
 
 		# Local variables	
-		self.task	  = GATE_TASK
+		self.task	  	  = GATE_TASK
 		self.taskEnabled  = False
 		self.taskComplete = False	
 		self.resetDepth   = 0
-		self.light			= Int16()
-		self.light.data			= 3
+		self.light		  = Int16()
+		self.light.data	  = 3
 
 	def reset_callback(self,msg):
-
-                self.resetDepth   = msg.data
-
+		self.resetDepth = msg.data
 	def task_callback(self,msg):
-
-		self.task	  = msg.data	
-	
+		self.task = msg.data	
 	def complete_callback(self,msg):
-		
 		self.taskComplete = msg.data	
 			
 	def execute(self, userdata):
-
 		self.light_publisher.publish(self.light)
-		# Actions
-		print("execute: ", self.task, self.taskEnabled)
-		if self.task == GATE_TASK and self.taskEnabled == False:
-
-			# Enable Gate Task
+		print("execute :: task:", self.task, "taskEnabled:", self.taskEnabled)
+		if self.task == GATE_TASK and not self.taskEnabled:
 			self.enable.data = True
 			self.gate_publisher.publish(self.enable)
 			self.taskEnabled = True
-
-		elif self.task == BUOY_TASK and self.taskEnabled == False:
-
-			# Enable Buoy Task
+		elif self.task == BUOY_TASK and not self.taskEnabled:
 			self.enable.data = True
 			self.buoy_publisher.publish(self.enable)
 			self.taskEnabled = True
-
-		elif self.task == TORPEDO_TASK and self.taskEnabled == False:
-
-			# Enable Torpedo Task
+		elif self.task == TORPEDO_TASK and not self.taskEnabled:
 			self.enable.data = True
 			self.torpedo_publisher.publish(self.enable)
 			self.taskEnabled = True
@@ -347,16 +301,13 @@ class execute(smach.State):
 			self.taskComplete = False
 			self.task 	 = GATE_TASK	 # Dummy number to prevent previous task from starting again
 			return 'taskcomplete'
-
 		else: 
 			return '!taskcomplete'
-
 
 
 ##-------------------------- END STATE DEFINITIONS ------------------------------------##
 
 def main():
-
 	# Initialize node with desired node name - ideally task name
 	rospy.init_node('my_task_statemachine')
 
@@ -379,12 +330,9 @@ def main():
 		smach.StateMachine.add('EXECUTE', execute(),
 					transitions = {'taskcomplete':'TRANSITION','!taskcomplete':'EXECUTE','reset':'IDLE'} )
 
-	
 	outcome = sm.execute()
 	rospy.spin()	
 	sis.stop()
 
-
 if __name__ == '__main__':
-
 	main()
