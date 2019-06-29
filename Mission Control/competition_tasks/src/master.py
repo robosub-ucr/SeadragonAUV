@@ -101,11 +101,21 @@ class TransitionState(smach.State):
 		# Local Variables
 		self.timer = 0
 		self.resetDepth = 0
+
+		self.has_reset = False
+		self.reset_subscriber = rospy.Subscriber('/reset', Bool, self.reset_callback)
+
+	def reset_callback(self, msg):
+		self.has_reset = msg.data
 		
 	def depth_callback(self,msg):
 		self.resetDepth = msg.data
 
 	def execute(self, userdata):
+		if self.has_reset:
+			self.resetValues()
+			return 'reset'
+
 		self.light_publisher.publish(self.light)
 		self.timer += 1
 
@@ -130,7 +140,10 @@ class TransitionState(smach.State):
 			return 'done'
 
 		else:
-			return 'notdone'			
+			return 'notdone'
+
+	def resetValues(self):
+		self.has_reset = False
 
 
 class SearchState(smach.State):
@@ -163,6 +176,12 @@ class SearchState(smach.State):
 		
 		self.rvs 	  = 1
 
+		self.has_reset = False
+		self.reset_subscriber = rospy.Subscriber('/reset', Bool, self.reset_callback)
+
+	def reset_callback(self, msg):
+		self.has_reset = msg.data
+
 	def depth_callback(self,msg):
 		self.resetDepth = msg.data
 	def yaw_callback(self,msg):
@@ -192,6 +211,10 @@ class SearchState(smach.State):
 			self.rvs = self.rvs * -1
 
 	def execute(self, userdata):
+		if self.has_reset:
+			self.resetValues()
+			return 'reset'
+
 		self.light_publisher.publish(self.light)
 		# Check for reset condition
 		if self.resetDepth < 6:
@@ -236,6 +259,9 @@ class SearchState(smach.State):
 		else:
 			return'notaskfound'
 
+	def resetValues(self):
+		self.has_reset = False
+
 
 class ExecuteState(smach.State):
 	def __init__(self):
@@ -244,7 +270,7 @@ class ExecuteState(smach.State):
 		# Subscribers
 		self.task_subscriber     = rospy.Subscriber('/task_detected', Int16, self.task_callback)
 		self.complete_subscriber = rospy.Subscriber('/task_complete', Bool, self.complete_callback)
-		self.depth_subscriber    = rospy.Subscriber('/depth', Int16, self.reset_callback)
+		self.depth_subscriber    = rospy.Subscriber('/depth', Int16, self.depth_callback)
 	
 		# Publishers
 		self.enable 		 = Bool()
@@ -262,7 +288,13 @@ class ExecuteState(smach.State):
 		self.light		  = Int16()
 		self.light.data	  = 3
 
-	def reset_callback(self,msg):
+		self.has_reset = False
+		self.reset_subscriber = rospy.Subscriber('/reset', Bool, self.reset_callback)
+
+	def reset_callback(self, msg):
+		self.has_reset = msg.data
+
+	def depth_callback(self,msg):
 		self.resetDepth = msg.data
 	def task_callback(self,msg):
 		self.task = msg.data	
@@ -270,6 +302,10 @@ class ExecuteState(smach.State):
 		self.taskComplete = msg.data	
 			
 	def execute(self, userdata):
+		if self.has_reset:
+			self.resetValues()
+			return 'reset'
+
 		self.light_publisher.publish(self.light)
 		print("execute :: task:", self.task, "taskEnabled:", self.taskEnabled)
 		if self.task == GATE_TASK and not self.taskEnabled:
@@ -304,6 +340,8 @@ class ExecuteState(smach.State):
 		else: 
 			return 'notaskcomplete'
 
+	def resetValues(self):
+		self.has_reset = False
 
 ##-------------------------- END STATE DEFINITIONS ------------------------------------##
 
