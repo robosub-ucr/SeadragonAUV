@@ -81,7 +81,6 @@ class IdleState(smach.State):
 
 
 class TransitionState(smach.State):
-
 	def __init__(self):
 		smach.State.__init__(self, outcomes=['done','notdone','reset'])
 
@@ -95,27 +94,17 @@ class TransitionState(smach.State):
 		# Publisher Data Containers
 		self.fwdThrust			= Int16()
 		self.fwdThrust.data		= 0
-		self.light			= Int16()
+		self.light				= Int16()
 		self.light.data			= 1
 
 		# Local Variables
 		self.timer = 0
 		self.resetDepth = 0
-
-		self.has_reset = False
-		self.reset_subscriber = rospy.Subscriber('/reset', Bool, self.reset_callback)
-
-	def reset_callback(self, msg):
-		self.has_reset = msg.data
 		
 	def depth_callback(self,msg):
 		self.resetDepth = msg.data
 
 	def execute(self, userdata):
-		if self.has_reset:
-			self.resetValues()
-			return 'reset'
-
 		self.light_publisher.publish(self.light)
 		self.timer += 1
 
@@ -141,9 +130,6 @@ class TransitionState(smach.State):
 
 		else:
 			return 'notdone'
-
-	def resetValues(self):
-		self.has_reset = False
 
 
 class SearchState(smach.State):
@@ -173,14 +159,7 @@ class SearchState(smach.State):
 		self.yawSetpoint  = Float64()
 		self.turnRange	  = .79  # 45 degrees
 		self.t 		  = 0
-		
 		self.rvs 	  = 1
-
-		self.has_reset = False
-		self.reset_subscriber = rospy.Subscriber('/reset', Bool, self.reset_callback)
-
-	def reset_callback(self, msg):
-		self.has_reset = msg.data
 
 	def depth_callback(self,msg):
 		self.resetDepth = msg.data
@@ -259,9 +238,6 @@ class SearchState(smach.State):
 		else:
 			return'notaskfound'
 
-	def resetValues(self):
-		self.has_reset = False
-
 
 class ExecuteState(smach.State):
 	def __init__(self):
@@ -288,24 +264,14 @@ class ExecuteState(smach.State):
 		self.light		  = Int16()
 		self.light.data	  = 3
 
-		self.has_reset = False
-		self.reset_subscriber = rospy.Subscriber('/reset', Bool, self.reset_callback)
-
-	def reset_callback(self, msg):
-		self.has_reset = msg.data
-
-	def depth_callback(self,msg):
+	def depth_callback(self, msg):
 		self.resetDepth = msg.data
-	def task_callback(self,msg):
+	def task_callback(self, msg):
 		self.task = msg.data	
-	def complete_callback(self,msg):
+	def complete_callback(self, msg):
 		self.taskComplete = msg.data	
 			
 	def execute(self, userdata):
-		if self.has_reset:
-			self.resetValues()
-			return 'reset'
-
 		self.light_publisher.publish(self.light)
 		print("execute :: task:", self.task, "taskEnabled:", self.taskEnabled)
 		if self.task == GATE_TASK and not self.taskEnabled:
@@ -340,8 +306,6 @@ class ExecuteState(smach.State):
 		else: 
 			return 'notaskcomplete'
 
-	def resetValues(self):
-		self.has_reset = False
 
 ##-------------------------- END STATE DEFINITIONS ------------------------------------##
 
