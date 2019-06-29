@@ -190,9 +190,6 @@ class SearchState(smach.State):
 			self.rvs = self.rvs * -1
 
 	def execute(self, userdata):
-		if self.has_reset:
-			self.resetValues()
-			return 'reset'
 
 		self.light_publisher.publish(self.light)
 		# Check for reset condition
