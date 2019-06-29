@@ -158,15 +158,15 @@ class SearchState(smach.State):
 		self.visionEnable.data = False
 		self.yawSetpoint  = Float64()
 		self.turnRange	  = .79  # 45 degrees
-		self.t 		  = 0
-		self.rvs 	  = 1
+		self.t 			= 0
+		self.rvs 		= 1
 
 	def depth_callback(self,msg):
 		self.resetDepth = msg.data
 	def yaw_callback(self,msg):
 		self.currYaw = msg.data
 	def task_callback(self,msg):
-		self.taskDetected = msg.data	
+		self.taskDetected = msg.data
 	
 	def map(self, x, in_min, in_max, out_min, out_max):
    		 return (x-in_min) * (out_max-out_min) / (in_max-in_min) + out_min
