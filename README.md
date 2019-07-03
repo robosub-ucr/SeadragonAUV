@@ -1,16 +1,17 @@
 # UCR RoboSub
 
-high-level description
+RoboSub is a student organization at University of California, Riverside. Our goal is to...
 
 ## Getting Started
 
-
-
 ### Prerequisites
 
+* Ubuntu 16.04
+* ROS
 
 ### Installing
 
+TODO: ROS installation guide
 
 ## Running tests
 
