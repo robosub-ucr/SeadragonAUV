@@ -31,7 +31,7 @@ class IdleState(smach.State):
 		smach.State.__init__(self, outcomes=['ready','notready'])
 		
 		# Subscribers
-		self.depth_subscriber = rospy.Subscriber('/depth', Int16, self.depth_callback)		
+		self.depth_subscriber 		= rospy.Subscriber('/depth', Int16, self.depth_callback)		
 		
 		# Publishers
 		self.yawPidEnable_publisher	= rospy.Publisher('/yaw_control/pid_enable', Bool, queue_size=10)
@@ -94,11 +94,11 @@ class TransitionState(smach.State):
 		# Publisher Data Containers
 		self.fwdThrust			= Int16()
 		self.fwdThrust.data		= 0
-		self.light				= Int16()
+		self.light			= Int16()
 		self.light.data			= 1
 
 		# Local Variables
-		self.timer = 0
+		self.timer 	= 0
 		self.resetDepth = 0
 		
 	def depth_callback(self,msg):
@@ -137,27 +137,27 @@ class SearchState(smach.State):
 		smach.State.__init__(self, outcomes=['taskfound','notaskfound','reset'])
 
 		# Publishers, Subscribers
-		self.depth_subscriber = rospy.Subscriber('/depth', Int16, self.depth_callback) 
-		self.yaw_subscriber = rospy.Subscriber('/yaw_control/state', Float64, self.yaw_callback)
-		self.task_subscriber = rospy.Subscriber('/task_detected', Int16, self.task_callback)
+		self.depth_subscriber 	= rospy.Subscriber('/depth', Int16, self.depth_callback) 
+		self.yaw_subscriber 	= rospy.Subscriber('/yaw_control/state', Float64, self.yaw_callback)
+		self.task_subscriber 	= rospy.Subscriber('/task_detected', Int16, self.task_callback)
 		
-		self.task_publisher = rospy.Publisher('/task_detected', Int16, queue_size=10)
-		self.yawOrientation_publisher = rospy.Publisher('/yaw_control/setpoint', Float64, queue_size=10)
+		self.task_publisher 		= rospy.Publisher('/task_detected', Int16, queue_size=10)
+		self.yawOrientation_publisher 	= rospy.Publisher('/yaw_control/setpoint', Float64, queue_size=10)
 		self.visionEnable_publisher	= rospy.Publisher('/vision_enable', Bool, queue_size=10)
-		self.light_publisher = rospy.Publisher('light_state', Int16, queue_size=10)
+		self.light_publisher 		= rospy.Publisher('light_state', Int16, queue_size=10)
 		
 		# Local Variables
-		self.light = Int16()
-		self.light.data = 2
-		self.timer = 0
-		self.resetDepth   = 0
-		self.currYaw 	  = 0
-		self.centerYaw    = 0
-		self.taskDetected = 0
-		self.visionEnable = Bool()
-		self.visionEnable.data = False
-		self.yawSetpoint  = Float64()
-		self.turnRange	  = .79  # 45 degrees
+		self.light 	  	= Int16()
+		self.light.data   	= 2
+		self.timer 	  	= 0
+		self.resetDepth   	= 0
+		self.currYaw 	  	= 0
+		self.centerYaw    	= 0
+		self.taskDetected 	= 0
+		self.visionEnable 	= Bool()
+		self.visionEnable.data 	= False
+		self.yawSetpoint  	= Float64()
+		self.turnRange	  	= .79  # 45 degrees
 		self.t 			= 0
 		self.rvs 		= 1
 
@@ -190,9 +190,6 @@ class SearchState(smach.State):
 			self.rvs = self.rvs * -1
 
 	def execute(self, userdata):
-		if self.has_reset:
-			self.resetValues()
-			return 'reset'
 
 		self.light_publisher.publish(self.light)
 		# Check for reset condition
@@ -257,11 +254,11 @@ class ExecuteState(smach.State):
 		self.light_publisher	 = rospy.Publisher('light_state', Int16, queue_size=10)
 
 		# Local variables	
-		self.task	  	  = GATE_TASK
+		self.task	  = GATE_TASK
 		self.taskEnabled  = False
 		self.taskComplete = False	
 		self.resetDepth   = 0
-		self.light		  = Int16()
+		self.light	  = Int16()
 		self.light.data	  = 3
 
 	def depth_callback(self, msg):
@@ -301,7 +298,7 @@ class ExecuteState(smach.State):
 			self.taskEnabled  = False
 			self.enable.data  = False
 			self.taskComplete = False
-			self.task 	 = GATE_TASK	 # Dummy number to prevent previous task from starting again
+			self.task 	  = GATE_TASK	 # Dummy number to prevent previous task from starting again
 			return 'taskcomplete'
 		else: 
 			return 'notaskcomplete'
