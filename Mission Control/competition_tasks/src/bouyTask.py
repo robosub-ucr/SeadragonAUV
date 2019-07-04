@@ -125,12 +125,12 @@ class TrackObjectState(smach.State):
 	def adjust_depth(self):
 		# change depth until y is within center +/- padding
 		new_depth = Float64() # 0 to 60 inches
-		if self.object_y > CAMERA_HEIGHT/2 + self.yoffset + CENTER_PADDING_Y:
-			new_depth.data = self.depth_current + DEPTH_STEP
+		if self.object_y > CAMERA_HEIGHT/2 + self.yoffset + CENTER_PADDING_Y:		# Object is above us
+			new_depth.data = self.depth_current - DEPTH_STEP			# So decrease depth
 			self.depth_publisher.publish(new_depth)
 			return False
-		elif self.object_y < CAMERA_HEIGHT/2 + self.yoffset - CENTER_PADDING_Y:
-			new_depth.data = self.depth_current - DEPTH_STEP
+		elif self.object_y < CAMERA_HEIGHT/2 + self.yoffset - CENTER_PADDING_Y:		# Object is below us
+			new_depth.data = self.depth_current + DEPTH_STEP			# So increase depth
 			self.depth_publisher.publish(new_depth)
 			return False
 		else:
