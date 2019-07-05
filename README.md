@@ -6,22 +6,26 @@ Each year we construct a submarine capable of completing a number of aquatic obj
 
 Sponsored by UCR's IEEE and ASME chapters, the project exposes all students to utilizing their coursework skills, working with others outside their major, and granting experience with a large-scale project with real-world applications. For the 2018-2019 academic year, UCR RoboSub has about \~30 active members, across almost every engineering major.
 
+### Software
+
+The Software team gives the submarine life, creating the artificial intelligence, computer vision, and software interface modules that allow the robot to see, sense, and move. We use Robot Operating System (ROS), Python, and C/C++ for our controls.
+
 ## Getting Started
 
 ### Prerequisites
 
 * Ubuntu 16.04
-* ROS
+* Robot Operating System (ROS) 
 
-### Installing
+### Installation
 
-TODO: ROS installation guide
+TODO
 
 ### Setup a ROS workspace
 
+TODO
 
-
-## Running tests
+### Running tests
 
 To start ROS: 
 1. Open a terminal
@@ -37,17 +41,3 @@ To start ROS:
 /yaw_control/setpoint std_msgs/Float64 “data: 1.0”
 /yaw_control/state std_msgs/Float64 “data: 1.0”
 ```
-
-
-## Built with
-
-* ROS
-* Jetson Tx2
-* Python
-
-## Authors
-
-* Rogelio Vasquez
-* Edward Carrasco
-* Marios Nicolaides
-* Kori Ridenour
