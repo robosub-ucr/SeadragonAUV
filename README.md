@@ -13,6 +13,10 @@ RoboSub is a student organization at University of California, Riverside. Our go
 
 TODO: ROS installation guide
 
+### Setup a ROS workspace
+
+
+
 ## Running tests
 
 To start ROS: 
