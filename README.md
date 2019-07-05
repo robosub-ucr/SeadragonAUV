@@ -1,6 +1,10 @@
 # UCR RoboSub
 
-RoboSub is a student organization at University of California, Riverside. Our goal is to...
+We are the University of California, Riverside's competitive autonomous underwater vehicle project, competing internationally in RoboNation's RoboSub Competition.
+
+Each year we construct a submarine capable of completing a number of aquatic objectives entirely on its own. The sheer volume of design and construction needed requires a large interdisciplinary team working collaboratively to share expertise and comunication throughout the process.
+
+Sponsored by UCR's IEEE and ASME chapters, the project exposes all students to utilizing their coursework skills, working with others outside their major, and granting experience with a large-scale project with real-world applications. For the 2018-2019 academic year, UCR RoboSub has about \~30 active members, across almost every engineering major.
 
 ## Getting Started
 
