@@ -157,7 +157,7 @@ class SearchState(smach.State):
 		self.visionEnable 	= Bool()
 		self.visionEnable.data 	= False
 		self.yawSetpoint  	= Float64()
-		self.turnRange	  	= .79  # 45 degrees
+		self.turnRange	  	= .35  # 20 degrees
 		self.t 			= 0
 		self.rvs 		= 1
 
