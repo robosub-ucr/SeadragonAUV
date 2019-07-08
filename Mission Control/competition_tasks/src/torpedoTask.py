@@ -55,7 +55,7 @@ class TrackObjectState(smach.State):
 		self.yaw_publisher = rospy.Publisher('yaw_control/setpoint', Float64, queue_size=10) # desired orientation
 
 		self.depth_current = 0 # in inches
-		rospy.Subscriber('/depth_control/state', Float64, self.depth_callback)
+		rospy.Subscriber('/depth_control/state', Int16, self.depth_callback)
 		self.depth_publisher = rospy.Publisher('/depth_control/setpoint', Float64, queue_size=10)
 
 		self.forward_thrust_publisher = rospy.Publisher('/yaw_pwm', Int16, queue_size=10)

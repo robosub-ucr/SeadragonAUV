@@ -25,13 +25,12 @@ BUOY_TASK = 1
 TORPEDO_TASK =2
 DUMMY_TASK = 3
 
-
 class IdleState(smach.State):
 	def __init__(self):
 		smach.State.__init__(self, outcomes=['ready','notready'])
 		
 		# Subscribers
-		self.depth_subscriber 		= rospy.Subscriber('/depth', Int16, self.depth_callback)		
+		self.depth_subscriber 		= rospy.Subscriber('/depth_control/state', Int16, self.depth_callback)		
 		
 		# Publishers
 		self.yawPidEnable_publisher	= rospy.Publisher('/yaw_control/pid_enable', Bool, queue_size=10)
@@ -85,7 +84,7 @@ class TransitionState(smach.State):
 		smach.State.__init__(self, outcomes=['done','notdone','reset'])
 
 		# Subscribers
-		self.depth_subscriber		= rospy.Subscriber('/depth', Int16, self.depth_callback) 
+		self.depth_subscriber		= rospy.Subscriber('/depth_control/state', Int16, self.depth_callback) 
 		
 		# Publishers
 		self.fwdThrust_publisher	= rospy.Publisher('/yaw_pwm', Int16, queue_size=10)
@@ -137,7 +136,7 @@ class SearchState(smach.State):
 		smach.State.__init__(self, outcomes=['taskfound','notaskfound','reset'])
 
 		# Publishers, Subscribers
-		self.depth_subscriber 	= rospy.Subscriber('/depth', Int16, self.depth_callback) 
+		self.depth_subscriber 	= rospy.Subscriber('/depth_control/state', Int16, self.depth_callback) 
 		self.yaw_subscriber 	= rospy.Subscriber('/yaw_control/state', Float64, self.yaw_callback)
 		self.task_subscriber 	= rospy.Subscriber('/task_detected', Int16, self.task_callback)
 		

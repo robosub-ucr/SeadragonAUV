@@ -61,7 +61,7 @@ class IDLE(smach.State):
 
 		self.gateEnable_subscriber = rospy.Subscriber('/gate_enable', Bool, self.task_callback)	
 		self.gateEnabled = False		
-		self.depthPoint_publisher = rospy.Publisher('/depth_control/setpoint', Float64, queue_size=10)
+		self.depthPoint_publisher = rospy.Publisher('/depth_control/setpoint', Int16, queue_size=10)
 		self.depthPoint = Float64()
 		self.depthPidEnable_publisher = rospy.Publisher('/depth_control/pid_enable', Bool, queue_size=10)
 		self.depthEnable = Bool()	
@@ -88,11 +88,11 @@ class DIVE(smach.State):
 	def __init__(self):
 		smach.State.__init__(self, outcomes=['ready','notready', 'reset'])
 	
-		self.currDepth_subscriber	= rospy.Subscriber('/depth', Int16, self.depth_callback)
+		self.currDepth_subscriber	= rospy.Subscriber('/depth_control/state', Int16, self.depth_callback)
 		self.currDepth = 0
 		self.depthPoint = depth_start
 
-		self.yawPoint_publisher = rospy.Publisher('/yaw_control/setpoint', Float64, queue_size=10)
+		self.yawPoint_publisher = rospy.Publisher('/yaw_control/setpoint', Int16, queue_size=10)
 		self.yawPoint = Float64()
 	
 		self.yawPidEnable_publisher = rospy.Publisher('/yaw_control/pid_enable', Bool, queue_size=10)
@@ -276,7 +276,7 @@ class PASS(smach.State):
 
 		self.reset_subscriber = rospy.Subscriber('/reset', Bool, self.reset_callback)
 		self.fwdThrust_publisher = rospy.Publisher('/yaw_pwm', Int16, queue_size=10)
-		self.depthPoint_publisher= rospy.Publisher('/depth_control/setpoint', Float64, queue_size=10)
+		self.depthPoint_publisher= rospy.Publisher('/depth_control/setpoint', Int16, queue_size=10)
 
 		# Local Variables
 		self.fwdThrust = Int16()
@@ -317,7 +317,7 @@ class SET_DEPTH(smach.State):
 		smach.State.__init__(self, outcomes=['depth','wait', 'reset'])
 
 		# Publishers, Subscribers
-		self.depth_subscriber = rospy.Subscriber('/depth', Bool, self.depth_callback) 
+		self.depth_subscriber = rospy.Subscriber('/depth_control/state', Int16, self.depth_callback) 
 		self.reset_subscriber = rospy.Subscriber('/reset', Bool, self.reset_callback)
 
 		self.curryaw_subscriber = rospy.Subscriber('/yaw_control/state', Float64, self.yaw_callback) 
@@ -357,7 +357,7 @@ class REORIENT(smach.State):
 		#Subscribers and Publishers
 		self.reset_subscriber = rospy.Subscriber('/reset', Bool, self.reset_callback)
 		self.curryaw_subscriber = rospy.Subscriber('/yaw_control/state', Float64, self.yaw_callback)
-		self.yawPoint_subscriber= rospy.Subscriber('/yaw_control/setpoint',Float64, self.yawPoint_callback)
+		self.yawPoint_subscriber= rospy.Subscriber('/yaw_control/setpoint', Float64, self.yawPoint_callback)
 		
 		# Local Variables
 		self.currYaw = 0
