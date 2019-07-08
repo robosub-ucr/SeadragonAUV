@@ -92,7 +92,7 @@ class DIVE(smach.State):
 		self.currDepth = 0
 		self.depthPoint = depth_start
 
-		self.yawPoint_publisher = rospy.Publisher('/yaw_control/setpoint', Int16, queue_size=10)
+		self.yawPoint_publisher = rospy.Publisher('/yaw_control/setpoint', Float64, queue_size=10)
 		self.yawPoint = Float64()
 	
 		self.yawPidEnable_publisher = rospy.Publisher('/yaw_control/pid_enable', Bool, queue_size=10)
