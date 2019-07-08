@@ -62,7 +62,7 @@ class IDLE(smach.State):
 		self.gateEnable_subscriber = rospy.Subscriber('/gate_enable', Bool, self.task_callback)	
 		self.gateEnabled = False		
 		self.depthPoint_publisher = rospy.Publisher('/depth_control/setpoint', Int16, queue_size=10)
-		self.depthPoint = Float64()
+		self.depthPoint = Int16()
 		self.depthPidEnable_publisher = rospy.Publisher('/depth_control/pid_enable', Bool, queue_size=10)
 		self.depthEnable = Bool()	
 
@@ -283,7 +283,7 @@ class PASS(smach.State):
 		self.fwdThrust.data = 0
 		self.timer = 0
 		self.reset = False
-		self.depthPoint = Float64()
+		self.depthPoint = Int16()
 
 	def reset_callback(self, msg):
 		self.reset = msg.data
