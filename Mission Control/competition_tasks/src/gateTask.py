@@ -208,7 +208,6 @@ class TRACK(smach.State):
 			self.yawPoint_publisher.publish(new_yaw)
 			self.forward_thrust = 0
 			self.forward_thrust_publisher.publish(self.forward_thrust)
-
 		elif self.gate_x < camera_width/2 - padding_x:
 			new_yaw.data = self.currYaw + yaw_change
 			self.yawPoint_publisher.publish(new_yaw)
@@ -241,7 +240,7 @@ class TURN(smach.State):
 		self.reset_subscriber = rospy.Subscriber('/reset', Bool, self.reset_callback)
 		self.curryaw_subscriber = rospy.Subscriber('/yaw_control/state', Float64, self.yaw_callback)
 		self.yawPoint_subscriber= rospy.Subscriber('/yaw_control/setpoint',Float64, self.yawPoint_callback)
-
+		self.isYawpointSet = False
 		# Local Variables
 		self.currYaw = 0
 		self.yawPoint = 0
@@ -251,23 +250,29 @@ class TURN(smach.State):
 		self.reset = msg.data
 	def yaw_callback(self,msg):
 		self.currYaw = msg.data
-	def yawPoint_callback(self,msg):
-		self.yawPoint = msg.data
+		if not self.isYawpointSet:
+			self.yawPoint = self.currYaw - 0.017*5 # 5 radians
+			self.isYawpointSet = True
 
 	def execute(self, userdata):
 		print("currYaw", self.currYaw)
 		if self.reset:
-			self.reset = False
+			self.resetValues()
 			return 'reset'
 
-		if abs(self.yawPoint - self.currYaw) < 0.017:
-			self.reset = False
+		print("currYaw", self.currYaw, "yawPoint", self.yawPoint)
+
+		if self.isYawpointSet and abs(self.yawPoint - self.currYaw) < 0.017:
+			self.resetValues()
 			return 'pass'
 		else: 
-# ############################### 
-# how does this state rotate yaw?
-# ###############################
 			return 'wait'
+
+	def resetValues(self):
+		self.currYaw = 0
+		self.yawPoint = 0
+		self.isYawpointSet = False
+		self.reset = False
 
 
 class PASS(smach.State):
