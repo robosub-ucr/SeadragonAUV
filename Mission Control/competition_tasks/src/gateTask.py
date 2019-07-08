@@ -236,42 +236,39 @@ class TURN(smach.State):
 	def __init__(self):
 		smach.State.__init__(self, outcomes=['pass','wait', 'reset'])
 
-		#Subscribers and Publishers
-		self.reset_subscriber = rospy.Subscriber('/reset', Bool, self.reset_callback)
-		self.curryaw_subscriber = rospy.Subscriber('/yaw_control/state', Float64, self.yaw_callback)
-		self.yawPoint_subscriber= rospy.Subscriber('/yaw_control/setpoint',Float64, self.yawPoint_callback)
-		self.isYawpointSet = False
-		# Local Variables
-		self.currYaw = 0
-		self.yawPoint = 0
 		self.reset = False
+		self.yaw_current = 0
+		self.yaw_setpoint = -1
+		self.yaw_assigned = False
+		rospy.Subscriber('/reset', Bool, self.reset_callback)
+		rospy.Subscriber('/yaw_control/state', Float64, self.yaw_callback)
+
+		self.yawPoint_publisher = rospy.Publisher('/yaw_control/setpoint', Float64, queue_size=10)
 
 	def reset_callback(self,msg):
 		self.reset = msg.data
 	def yaw_callback(self,msg):
-		self.currYaw = msg.data
-		if not self.isYawpointSet:
-			self.yawPoint = self.currYaw - 0.017*5 # 5 radians
-			self.isYawpointSet = True
+		self.yaw_current = msg.data
+		if not self.yaw_assigned:
+			self.yaw_setpoint = self.yaw_current - 0.017*5 # 5 radians
+			self.yaw_assigned = True
 
 	def execute(self, userdata):
-		print("currYaw", self.currYaw)
 		if self.reset:
 			self.resetValues()
 			return 'reset'
+		print("yaw_current", self.yaw_current, "yaw_setpoint", self.yaw_setpoint)
 
-		print("currYaw", self.currYaw, "yawPoint", self.yawPoint)
-
-		if self.isYawpointSet and abs(self.yawPoint - self.currYaw) < 0.017:
+		if self.yaw_assigned and abs(self.yaw_setpoint - self.yaw_current) < 0.017:
 			self.resetValues()
 			return 'pass'
 		else: 
 			return 'wait'
 
 	def resetValues(self):
-		self.currYaw = 0
-		self.yawPoint = 0
-		self.isYawpointSet = False
+		self.yaw_current = 0
+		self.yaw_setpoint = -1
+		self.yaw_assigned = False
 		self.reset = False
 
 
