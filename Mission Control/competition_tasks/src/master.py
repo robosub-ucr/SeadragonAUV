@@ -30,7 +30,7 @@ class IdleState(smach.State):
 		smach.State.__init__(self, outcomes=['ready','notready'])
 		
 		# Subscribers
-		self.depth_subscriber 		= rospy.Subscriber('/depth_control/state', Int16, self.depth_callback)		
+		self.depth_subscriber 		= rospy.Subscriber('/depth', Int16, self.depth_callback)		
 		
 		# Publishers
 		self.yawPidEnable_publisher	= rospy.Publisher('/yaw_control/pid_enable', Bool, queue_size=10)
