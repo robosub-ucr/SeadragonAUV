@@ -52,6 +52,7 @@ desired_orientation = 1.57 # will change acording to direction of gate
 turn = 0.26 # degrees to turn after track state
 buoy_depth = 36 # depth (in inches) for the buoys
 gate_timer = 10000 #time to pass gate
+BOUY_TASK_DEPTH = 5*12 # in inches
 
 ##------------------------- STATE DEFINITIONS -----------------------------------##
 
@@ -296,7 +297,7 @@ class PASS(smach.State):
 			if self.fwdThrust.data < 280:
 				self.fwdThrust.data += 1
 				self.fwdThrust_publisher.publish(self.fwdThrust)
-
+				
 		if self.reset:
 			self.timer = 0
 			self.reset = False
@@ -318,32 +319,28 @@ class SET_DEPTH(smach.State):
 	def __init__(self):
 		smach.State.__init__(self, outcomes=['depth','wait', 'reset'])
 
-		# Publishers, Subscribers
-		self.depth_subscriber = rospy.Subscriber('/depth_control/state', Int16, self.depth_callback) 
-		self.reset_subscriber = rospy.Subscriber('/reset', Bool, self.reset_callback)
+		rospy.Subscriber('/depth_control/state', Int16, self.depth_callback) 
+		rospy.Subscriber('/reset', Bool, self.reset_callback)
 
-		self.curryaw_subscriber = rospy.Subscriber('/yaw_control/state', Float64, self.yaw_callback) 
-		self.yawPoint_publisher = rospy.Publisher('/yaw_control/setpoint', Float64, queue_size=10) 
+		#self.curryaw_subscriber = rospy.Subscriber('/yaw_control/state', Float64, self.yaw_callback) 
+		#self.yawPoint_publisher = rospy.Publisher('/yaw_control/setpoint', Float64, queue_size=10) 
 		
-		# Local Variables
 		self.depth = 0
-		self.curryaw = 0 
-		self.yawPoint = Float64()
+		#self.curryaw = 0 
+		#self.yawPoint = Float64()
 		self.reset = False
 
 	def reset_callback(self,msg):
 		self.reset = msg.data
 	def depth_callback(self,msg):
 		self.depth = msg.data
-	def yaw_callback(self,msg):
-		self.curryaw= msg.data
 
 	def execute(self, userdata):
 		if self.reset:
 			self.reset = False
 			return 'reset'
 
-		if abs(self.depth - buoy_depth) < 2:
+		if abs(self.depth - BOUY_TASK_DEPTH) <= 1:
 			self.yawPoint.data = self.curryaw + turn
 			self.yawPoint_publisher.publish(self.yawPoint)
 			self.reset = False
