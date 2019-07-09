@@ -84,7 +84,7 @@ class TransitionState(smach.State):
 		smach.State.__init__(self, outcomes=['done','notdone','reset'])
 
 		# Subscribers
-		self.depth_subscriber		= rospy.Subscriber('/depth_control/state', Int16, self.depth_callback) 
+		self.depth_subscriber		= rospy.Subscriber('/depth', Int16, self.depth_callback) 
 		
 		# Publishers
 		self.fwdThrust_publisher	= rospy.Publisher('/yaw_pwm', Int16, queue_size=10)
