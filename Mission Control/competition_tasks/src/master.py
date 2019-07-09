@@ -242,7 +242,7 @@ class ExecuteState(smach.State):
 		# Subscribers
 		self.task_subscriber     = rospy.Subscriber('/task_detected', Int16, self.task_callback)
 		self.complete_subscriber = rospy.Subscriber('/task_complete', Bool, self.complete_callback)
-		self.depth_subscriber    = rospy.Subscriber('/depth_control/state', Int16, self.depth_callback)
+		self.depth_subscriber    = rospy.Subscriber('/depth', Int16, self.depth_callback)
 	
 		# Publishers
 		self.enable 		 = Bool()
