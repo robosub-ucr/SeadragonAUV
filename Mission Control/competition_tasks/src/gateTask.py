@@ -52,7 +52,7 @@ desired_orientation = 1.57 # will change acording to direction of gate
 turn = 0.26 # degrees to turn after track state
 buoy_depth = 36 # depth (in inches) for the buoys
 gate_timer = 10000 #time to pass gate
-BUOY_TASK_DEPTH = 5*12 # in inches
+BOUY_TASK_DEPTH = 5*12 # in inches
 
 ##------------------------- STATE DEFINITIONS -----------------------------------##
 
@@ -297,7 +297,7 @@ class PASS(smach.State):
 			if self.fwdThrust.data < 280:
 				self.fwdThrust.data += 1
 				self.fwdThrust_publisher.publish(self.fwdThrust)
-				
+
 		if self.reset:
 			self.timer = 0
 			self.reset = False
@@ -326,7 +326,7 @@ class SET_DEPTH(smach.State):
 		#self.yawPoint_publisher = rospy.Publisher('/yaw_control/setpoint', Float64, queue_size=10) 
 		
 		self.depth = 0
-		#self.curryaw = 0 
+		#self.curryaw = 0
 		#self.yawPoint = Float64()
 		self.reset = False
 
@@ -340,13 +340,13 @@ class SET_DEPTH(smach.State):
 			self.reset = False
 			return 'reset'
 
-		if abs(self.depth - BUOY_TASK_DEPTH) <= 1:
+		if abs(self.depth - BOUY_TASK_DEPTH) <= 1:
 			self.yawPoint.data = self.curryaw + turn
 			self.yawPoint_publisher.publish(self.yawPoint)
 			self.reset = False
 			return 'depth'
 		else:
-			return 'wait'		
+			return 'wait'
 
 
 class REORIENT(smach.State):
