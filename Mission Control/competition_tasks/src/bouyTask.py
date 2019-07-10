@@ -382,7 +382,7 @@ def main():
 		smach.StateMachine.add('FACE_TORPEDO_TASK', RotateYawState(YAW_TORPEDO_TASK, YAW_VARIANCE), 
 			transitions={'done':'MOVE_TORPEDO_DEPTH', 'notdone':'FACE_TORPEDO_TASK', 'reset':'RESET'})
 		smach.StateMachine.add('MOVE_TORPEDO_DEPTH', ChangeDepthState(TORPEDO_BOARD_CENTER_DEPTH, DEPTH_VARIANCE), 
-			transitions={'done':'IDLE', 'notdone':'MOVE_TORPEDO_DEPTH', 'reset':'RESET'})
+			transitions={'done':'COMPLETED', 'notdone':'MOVE_TORPEDO_DEPTH', 'reset':'RESET'})
 		smach.StateMachine.add('COMPLETED', CompletedState('/buoy_task_complete'),
 			transitions={'done':'IDLE'})
 		smach.StateMachine.add('RESET', ResetState(), 
