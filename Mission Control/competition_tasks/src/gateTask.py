@@ -52,7 +52,7 @@ desired_orientation = 1.57 # will change acording to direction of gate
 turn = 0.26 # degrees to turn after track state
 buoy_depth = 36 # depth (in inches) for the buoys
 gate_timer = 10000 #time to pass gate
-BOUY_TASK_DEPTH = 5*12 # in inches
+BUOY_TASK_DEPTH = 5*12 # in inches
 
 ##------------------------- STATE DEFINITIONS -----------------------------------##
 
@@ -340,7 +340,7 @@ class SET_DEPTH(smach.State):
 			self.reset = False
 			return 'reset'
 
-		if abs(self.depth - BOUY_TASK_DEPTH) <= 1:
+		if abs(self.depth - BUOY_TASK_DEPTH) <= 1:
 			self.yawPoint.data = self.curryaw + turn
 			self.yawPoint_publisher.publish(self.yawPoint)
 			self.reset = False
