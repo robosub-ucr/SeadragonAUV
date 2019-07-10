@@ -185,7 +185,7 @@ class turn(smach.State):
 	self.yawBegin			= 0
 	self.yawRecorded		= False
 	self.t 				= 0
-	self.turnComplete		= False
+	self.turnState			= 0
 
     def depth_callback(self,msg):
 		self.resetDepth = msg.data
@@ -211,7 +211,8 @@ class turn(smach.State):
 		self.t += 1
 
 		if self.t > T:
-			self.turnComplete = True
+			self.turnState += 1
+			self.t = 0
 
     def reset_variables(self):
 		self.resetDepth   = 0
@@ -219,7 +220,7 @@ class turn(smach.State):
 		self.yawBegin 	  = 0
 		self.t 		  = 0
 		self.yawRecorded  = False
-		self.turnComplete = False
+		self.turnState    = 0
 	 
     def execute(self, userdata):
 
@@ -236,25 +237,21 @@ class turn(smach.State):
 	# Once sub know's what it's current orientation is, begin turning by 360 degrees
 	if self.yawRecorded == True:
 
-		# FIXME - Modify Discontinuity control 
-		# Fix 0 degree Edge Case and Singularity edge case in one go.
-		endYaw = self.yawBegin + self.turnRange
-
-		# Handle's Turn's at discontinuities 
+		# Handle's Turn's at discontinuities [Added constraint for only right turns]
 		# Uses 3rd order polynomial for smooth trajectory
-		if endYaw > 3.14:
-			thetaEnd = -3.14 + (endYaw - 3.14)
-			self.scan(1000, self.yawBegin, 3.14)
-			self.scan(1000, -3.14, thetaEnd)
-		elif endYaw < -3.14:
-			thetaEnd = 3.14 - (abs(endYaw) - 3.14)
-			self.scan(1000, self.yawBegin, 3.14)
-			self.scan(1000, -3.14, thetaEnd)
-		else:
-			self.scan(2000, self.yawBegin, endYaw)
+		if self.yawBegin > -1:
+			if self.turnState == 0:
+				self.scan(2000, self.yawBegin, 3.14)
+			else:
+				self.scan(2000, -3.14, (self.yawBegin - 3.12) )
+		elif self.yawBegin < 0:
+			if self.turnState == 0:
+				self.scan(2000, self.yawBegin, 0)
+			else:
+				self.scan(2000, 0, (self.yawBegin + 3.12) )
 		
 	# Once 'scan' sets turnComplete flag 'True' proceed to transition
-	if self.turnComplete == True:
+	if self.turnState == 2:
 		self.reset_variables()
 		return 'done'
 	else:
