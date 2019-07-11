@@ -416,7 +416,7 @@ def main():
 	sm = smach.StateMachine(outcomes=['task_complete'])
 
 	# Create and start introspection server - fancy way of saying view gui feature
-	sis = smach_ros.IntrospectionServer('server_name', sm, '/SM_ROOT')
+	sis = smach_ros.IntrospectionServer('server_name', sm, '/SM_GATE_TASK')
 	sis.start()
 
 	# Open SMACH container

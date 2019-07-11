@@ -302,6 +302,18 @@ class MoveForwardState(smach.State):
 		self.has_reset = False
 
 
+class CompletedState(smach.State):
+	def __init__(self, topic_name):
+		smach.State.__init__(self, outcomes=['done'])
+		self.completed_task_publisher = rospy.Publisher(topic_name, Bool, queue_size=10)
+
+	def execute(self, userdata):
+		completed = Bool()
+		completed.data = True
+		self.completed_task_publisher.publish(completed)
+		return 'done'
+
+
 class ResetState(smach.State):
 	def __init__(self):
 		smach.State.__init__(self, outcomes=['done', 'notdone'])
@@ -314,7 +326,7 @@ class ResetState(smach.State):
 def main():
 	rospy.init_node('buoy_task_state_machine')
 	sm = smach.StateMachine(outcomes=['buoy_task_complete'])
-	sis = smach_ros.IntrospectionServer('server_name', sm, '/SM_ROOT')
+	sis = smach_ros.IntrospectionServer('server_name', sm, '/SM_BUOY_TASK')
 	sis.start()
 
 	buoy_flat_topic = {
@@ -370,7 +382,9 @@ def main():
 		smach.StateMachine.add('FACE_TORPEDO_TASK', RotateYawState(YAW_TORPEDO_TASK, YAW_VARIANCE), 
 			transitions={'done':'MOVE_TORPEDO_DEPTH', 'notdone':'FACE_TORPEDO_TASK', 'reset':'RESET'})
 		smach.StateMachine.add('MOVE_TORPEDO_DEPTH', ChangeDepthState(TORPEDO_BOARD_CENTER_DEPTH, DEPTH_VARIANCE), 
-			transitions={'done':'IDLE', 'notdone':'MOVE_TORPEDO_DEPTH', 'reset':'RESET'})
+			transitions={'done':'COMPLETED', 'notdone':'MOVE_TORPEDO_DEPTH', 'reset':'RESET'})
+		smach.StateMachine.add('COMPLETED', CompletedState('/buoy_task_complete'),
+			transitions={'done':'IDLE'})
 		smach.StateMachine.add('RESET', ResetState(), 
 			transitions={'done':'IDLE', 'notdone':'RESET'})
 
