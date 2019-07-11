@@ -6,17 +6,17 @@ import smach
 import smach_ros
 from std_msgs.msg import Bool, Float64, Int16
 
-CAMERA_WIDTH = 400
-CAMERA_HEIGHT = 300
-CENTER_PADDING_X = 15
-CENTER_PADDING_Y = 15
-YAW_INCREASE = 0.017 # radians
-DEPTH_STEP = 1
+CAMERA_WIDTH 		= 400
+CAMERA_HEIGHT 		= 300
+CENTER_PADDING_X 	= 15
+CENTER_PADDING_Y 	= 15
+YAW_INCREASE 		= 0.017 # radians
+DEPTH_STEP 		= 1
 FORWARD_THRUST_INCREASE = 1
-AREA_THRESHOLD_LOW = 0.15
-AREA_THRESHOLD_HIGH = 0.2
-TORPEDO_Y_OFFSET = 10
-MAX_FORWARD_THRUST= 280
+AREA_THRESHOLD_LOW 	= 0.15
+AREA_THRESHOLD_HIGH 	= 0.2
+TORPEDO_Y_OFFSET 	= 10
+MAX_FORWARD_THRUST	= 280
 
 class StartState(smach.State):
 	def __init__(self):
@@ -39,12 +39,13 @@ class TrackObjectState(smach.State):
 	def __init__(self, obj_topic, yoffset):
 		smach.State.__init__(self, outcomes=['done', 'notdone', 'reset'])
 
-		self.yoffset = yoffset
-		self.timer = 0
+		self.yoffset 	 = yoffset
+		self.timer 	 = 0
 
-		self.object_x = 0 # in pixels
-		self.object_y = 0 # in pixels
+		self.object_x 	 = 0 # in pixels
+		self.object_y 	 = 0 # in pixels
 		self.object_area = 0 # object width * height
+
 		rospy.Subscriber(obj_topic['x'], Float64, self.object_x_callback)
 		rospy.Subscriber(obj_topic['y'], Float64, self.object_y_callback)
 		rospy.Subscriber(obj_topic['area'], Float64, self.object_area_callback)
@@ -169,39 +170,51 @@ class TrackObjectState(smach.State):
 		self.forward_thrust_publisher.publish(new_forward_thrust)
 
 class ChangeDepthState(smach.State):
-	def __init__(self, targetDepth, threshold):
+	def __init__(self, depthAdjust, threshold):
 		smach.State.__init__(self, outcomes=['done', 'notdone', 'reset'])
-		self.targetDepth = targetDepth
-		self.threshold = threshold
 
-		self.depth_current = 0 # in inches
+		# Local Change Depth State variables
+		self.depthAdjust 	= depthAdjust
+		self.threshold 		= threshold
+		self.depth_current 	= 0 # in inches
+		self.target_depth	= 0 # in inches
+		self.target_set 	= False
+		self.has_reset 		= False
+		self.new_depth_target 	= Float64() # ROS depth msg container
+
+		# Subscribers
 		rospy.Subscriber('/depth', Int16, self.depth_callback)
-		self.depth_publisher = rospy.Publisher('/depth_control/setpoint', Float64, queue_size=10)
-
-		self.has_reset = False
 		self.reset_subscriber = rospy.Subscriber('/reset', Bool, self.reset_callback)
+
+		self.depth_publisher = rospy.Publisher('/depth_control/setpoint', Float64, queue_size=10)
 
 	def depth_callback(self, msg):
 		self.depth_current = msg.data
 	def reset_callback(self, msg):
 		self.has_reset = msg.data
 
+	def reset_variables(self):
+		self.has_reset     = False
+		self.target_set    = False
+		self.depth_current = 0
+		self.target_depth  = 0
+
 	def execute(self, userdata):
 		if self.has_reset:
+			self.reset_variables()
 			return 'reset'
-		if self.depth_current > self.targetDepth + self.threshold:
-			self.change_depth(DEPTH_STEP) # submarine is above target, increase depth
-			return 'notdone'
-		elif self.depth_current < self.targetDepth - self.threshold:
-			self.change_depth(-DEPTH_STEP) # submarine is below target, decrease depth
+
+		if self.target_set == False and self.depth_current != 0:
+			self.target_depth = self.depth_current + self.depthAdjust	# target_depth only for transition calculation	
+			self.new_depth_target.data = self.target_depth			# ROS MSG container
+			self.depth_publisher.publish(self.new_depth_target_data)	
+			self.target_set == True
+		
+		if abs(self.depth_current - self.target_depth) > self.threshold:
 			return 'notdone'
 		else:
+			self.reset_variables()
 			return 'done'
-
-	def change_depth(self, amount):
-		new_depth = Float64()
-		new_depth.data = self.depth_current + amount
-		self.depth_publisher.publish(new_depth)
 
 
 class RotateYawState(smach.State):
@@ -345,50 +358,64 @@ def main():
 		'area': '/buoy_triangle_area'
 	}
 
-	TOUCH_FLAT_TIMER = 1000 # time required (in ticks) to touch the flat buoy
-	MOVE_BACK_1_TIMER = 700 # time required (in ticks) to move back, away from flat buoy
-	MOVE_FORWARD_TIMER = 2000 # time required (in ticks) to move past the flat buoy
-	TOUCH_TRIANGLE_TIMER = 1000 # time required (in ticks) to touch the triangle buoy
-	MOVE_BACK_2_TIMER = 1400 # time required (in ticks) to move back, away from triangle buoy
+	TOUCH_FLAT_TIMER 	= 1000 # time required (in ticks) to touch the flat buoy
+	MOVE_BACK_1_TIMER 	= 700  # time required (in ticks) to move back, away from flat buoy
+	MOVE_FORWARD_TIMER 	= 2000 # time required (in ticks) to move past the flat buoy
+	TOUCH_TRIANGLE_TIMER 	= 1000 # time required (in ticks) to touch the triangle buoy
+	MOVE_BACK_2_TIMER 	= 1400 # time required (in ticks) to move back, away from triangle buoy
 
-	buoy_ABOVE_DEPTH = 3*12 # 3 feet
-	buoy_CENTER_DEPTH = 6*12 # 6 feet
-	TORPEDO_BOARD_CENTER_DEPTH = 5*12 # 5 feet
-	DEPTH_VARIANCE = 1 # 1 inch
+	BUOY_ABOVE_DEPTH 	= -36  # Adjusts sub to move 3 ft up
+	BUOY_BELOW_DEPTH 	= 36   # Adjusts sub to move 3 ft down
+	TORPEDO_BOARD_DEPTH 	= 36   # Adjusts sub to move 3 ft down
+	DEPTH_VARIANCE 		= 2    # 2 inch
 
-	YAW_buoy_BACK = -1.59 # the yaw (in radians) to face the back of the triangle buoy
-	YAW_TORPEDO_TASK = 0.5 # the yaw (in radians) to face the torpedo task
-	YAW_VARIANCE = 0.1 # in radians
+	YAW_BUOY_BACK 		= 3.14 # the yaw (in radians) to make sub turn 180 degrees to face back buoys
+	YAW_TORPEDO_TASK 	= 0.5  # the yaw (in radians) to face the torpedo task
+	YAW_VARIANCE 		= 0.1  # in radians
 
 	with sm:
 		smach.StateMachine.add('IDLE', StartState(), 
 			transitions={'ready':'TRACK_FLAT', 'notready':'IDLE'})
+
 		smach.StateMachine.add('TRACK_FLAT', TrackObjectState(buoy_flat_topic, 0), 
 			transitions={'done':'TOUCH_FLAT', 'notdone':'TRACK_FLAT', 'reset':'RESET'})
+
 		smach.StateMachine.add('TOUCH_FLAT', MoveForwardState(TOUCH_FLAT_TIMER, True), 
 			transitions={'done':'MOVE_BACK_1', 'notdone':'TOUCH_FLAT', 'reset':'RESET'})
+
 		smach.StateMachine.add('MOVE_BACK_1', MoveForwardState(MOVE_BACK_1_TIMER, False), 
 			transitions={'done':'MOVE_UP', 'notdone':'MOVE_BACK_1', 'reset':'RESET'})
-		smach.StateMachine.add('MOVE_UP', ChangeDepthState(buoy_ABOVE_DEPTH, DEPTH_VARIANCE), 
+
+		smach.StateMachine.add('MOVE_UP', ChangeDepthState(BUOY_ABOVE_DEPTH, DEPTH_VARIANCE), 
 			transitions={'done':'MOVE_FORWARD', 'notdone':'MOVE_UP', 'reset':'RESET'})
+
 		smach.StateMachine.add('MOVE_FORWARD', MoveForwardState(MOVE_FORWARD_TIMER, True), 
 			transitions={'done':'MOVE_DOWN', 'notdone':'MOVE_FORWARD', 'reset':'RESET'})
-		smach.StateMachine.add('MOVE_DOWN', ChangeDepthState(buoy_CENTER_DEPTH, DEPTH_VARIANCE), 
+
+		smach.StateMachine.add('MOVE_DOWN', ChangeDepthState(BUOY_BELOW_DEPTH, DEPTH_VARIANCE), 
 			transitions={'done':'TURN_AROUND', 'notdone':'MOVE_DOWN', 'reset':'RESET'})
-		smach.StateMachine.add('TURN_AROUND', RotateYawState(YAW_buoy_BACK, YAW_VARIANCE), 
+
+		smach.StateMachine.add('TURN_AROUND', RotateYawState(YAW_BUOY_BACK, YAW_VARIANCE), 
 			transitions={'done':'TRACK_TRIANGLE', 'notdone':'TURN_AROUND', 'reset':'RESET'})
+
 		smach.StateMachine.add('TRACK_TRIANGLE', TrackObjectState(buoy_triangle_topic, 0), 
 			transitions={'done':'TOUCH_TRIANGLE', 'notdone':'TRACK_TRIANGLE', 'reset':'RESET'})
+
 		smach.StateMachine.add('TOUCH_TRIANGLE', MoveForwardState(TOUCH_TRIANGLE_TIMER, True), 
 			transitions={'done':'MOVE_BACK_2', 'notdone':'TOUCH_TRIANGLE', 'reset':'RESET'})
+
 		smach.StateMachine.add('MOVE_BACK_2', MoveForwardState(MOVE_BACK_2_TIMER, False), 
 			transitions={'done':'FACE_TORPEDO_TASK', 'notdone':'MOVE_BACK_2', 'reset':'RESET'})
+
 		smach.StateMachine.add('FACE_TORPEDO_TASK', RotateYawState(YAW_TORPEDO_TASK, YAW_VARIANCE), 
 			transitions={'done':'MOVE_TORPEDO_DEPTH', 'notdone':'FACE_TORPEDO_TASK', 'reset':'RESET'})
-		smach.StateMachine.add('MOVE_TORPEDO_DEPTH', ChangeDepthState(TORPEDO_BOARD_CENTER_DEPTH, DEPTH_VARIANCE), 
+
+		smach.StateMachine.add('MOVE_TORPEDO_DEPTH', ChangeDepthState(TORPEDO_BOARD_DEPTH, DEPTH_VARIANCE), 
 			transitions={'done':'COMPLETED', 'notdone':'MOVE_TORPEDO_DEPTH', 'reset':'RESET'})
+
 		smach.StateMachine.add('COMPLETED', CompletedState('/buoy_task_complete'),
 			transitions={'done':'IDLE'})
+
 		smach.StateMachine.add('RESET', ResetState(), 
 			transitions={'done':'IDLE', 'notdone':'RESET'})
 
