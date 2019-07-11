@@ -6,17 +6,17 @@ import smach
 import smach_ros
 from std_msgs.msg import Bool, Float64, Int16
 
-CAMERA_WIDTH 		= 400
-CAMERA_HEIGHT 		= 300
-CENTER_PADDING_X 	= 15
-CENTER_PADDING_Y 	= 15
-YAW_INCREASE 		= 0.017 # radians
-DEPTH_STEP 		= 1
+CAMERA_WIDTH = 400
+CAMERA_HEIGHT = 300
+CENTER_PADDING_X = 15
+CENTER_PADDING_Y = 15
+YAW_INCREASE = 0.017 # radians
+DEPTH_STEP = 1
 FORWARD_THRUST_INCREASE = 1
-AREA_THRESHOLD_LOW 	= 0.15
-AREA_THRESHOLD_HIGH 	= 0.2
-TORPEDO_Y_OFFSET 	= 10
-MAX_FORWARD_THRUST	= 280
+AREA_THRESHOLD_LOW = 0.15
+AREA_THRESHOLD_HIGH = 0.2
+TORPEDO_Y_OFFSET = 10
+MAX_FORWARD_THRUST= 280
 
 class StartState(smach.State):
 	def __init__(self):
@@ -39,13 +39,12 @@ class TrackObjectState(smach.State):
 	def __init__(self, obj_topic, yoffset):
 		smach.State.__init__(self, outcomes=['done', 'notdone', 'reset'])
 
-		self.yoffset 	 = yoffset
-		self.timer 	 = 0
+		self.yoffset = yoffset
+		self.timer = 0
 
-		self.object_x 	 = 0 # in pixels
-		self.object_y 	 = 0 # in pixels
+		self.object_x = 0 # in pixels
+		self.object_y = 0 # in pixels
 		self.object_area = 0 # object width * height
-
 		rospy.Subscriber(obj_topic['x'], Float64, self.object_x_callback)
 		rospy.Subscriber(obj_topic['y'], Float64, self.object_y_callback)
 		rospy.Subscriber(obj_topic['area'], Float64, self.object_area_callback)
@@ -210,7 +209,8 @@ class ChangeDepthState(smach.State):
 			self.depth_publisher.publish(self.new_depth_target_data)	
 			self.target_set == True
 		
-		if abs(self.depth_current - self.target_depth) > self.threshold:
+		# Sub stays in change depth state until it reaches its target depth or while it hasn't set a new depth target
+		if (abs(self.depth_current - self.target_depth) > self.threshold) or (self.target_set == False):
 			return 'notdone'
 		else:
 			self.reset_variables()
