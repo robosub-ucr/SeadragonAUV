@@ -8,13 +8,13 @@ from std_msgs.msg import Bool, Float64, Int16
 
 CAMERA_WIDTH = 400
 CAMERA_HEIGHT = 300
-CENTER_PADDING_X = 5
-CENTER_PADDING_Y = 5
+CENTER_PADDING_X = 15
+CENTER_PADDING_Y = 15
 YAW_INCREASE = 0.017 # radians
 DEPTH_STEP = 1
 FORWARD_THRUST_INCREASE = 1
-AREA_THRESHOLD_LOW = 0.85
-AREA_THRESHOLD_HIGH = 0.90
+AREA_THRESHOLD_LOW = 0.15
+AREA_THRESHOLD_HIGH = 0.2
 TORPEDO_Y_OFFSET = 10
 MAX_FORWARD_THRUST= 280
 
@@ -54,8 +54,8 @@ class TrackObjectState(smach.State):
 		self.yaw_publisher = rospy.Publisher('/yaw_control/setpoint', Float64, queue_size=10) # desired orientation
 
 		self.depth_current = 0 # in inches
-		rospy.Subscriber('/depth_control/state', Int16, self.depth_callback)
-		self.depth_publisher = rospy.Publisher('/depth_control/setpoint', Int16, queue_size=10)
+		rospy.Subscriber('/depth', Int16, self.depth_callback)
+		self.depth_publisher = rospy.Publisher('/depth_control/setpoint', Float64, queue_size=10)
 
 		self.forward_thrust_publisher = rospy.Publisher('/yaw_pwm', Int16, queue_size=10)
 		self.forward_thrust = 0
@@ -89,6 +89,10 @@ class TrackObjectState(smach.State):
 
 		if is_object_x_centered and is_object_y_centered:
 			is_object_area_in_threshold = self.adjust_position()
+		else:
+			new_forward_thrust = Int16()
+			new_forward_thrust.data = 0
+			self.forward_thrust_publisher.publish(new_forward_thrust)
 
 		# go to next state if the object is at the center of the camera frame and within certain distace of the submarine
 		if is_object_x_centered and is_object_y_centered and is_object_area_in_threshold:
@@ -125,12 +129,12 @@ class TrackObjectState(smach.State):
 	def adjust_depth(self):
 		# change depth until y is within center +/- padding
 		new_depth = Float64() # 0 to 60 inches
-		if self.object_y > CAMERA_HEIGHT/2 + self.yoffset + CENTER_PADDING_Y:		# Object is above us
-			new_depth.data = self.depth_current - DEPTH_STEP			# So decrease depth
+		if self.object_y > CAMERA_HEIGHT/2 + self.yoffset + CENTER_PADDING_Y:		# Object is below us
+			new_depth.data = self.depth_current + DEPTH_STEP			# So increase depth
 			self.depth_publisher.publish(new_depth)
 			return False
-		elif self.object_y < CAMERA_HEIGHT/2 + self.yoffset - CENTER_PADDING_Y:		# Object is below us
-			new_depth.data = self.depth_current + DEPTH_STEP			# So increase depth
+		elif self.object_y < CAMERA_HEIGHT/2 + self.yoffset - CENTER_PADDING_Y:		# Object is above us
+			new_depth.data = self.depth_current - DEPTH_STEP			# So decrease depth
 			self.depth_publisher.publish(new_depth)
 			return False
 		else:
@@ -138,10 +142,10 @@ class TrackObjectState(smach.State):
 
 	def adjust_position(self):
 		# move forward/backward until object area is within threshold
-		if self.object_area/(CAMERA_WIDTH*CAMERA_HEIGHT) < AREA_THRESHOLD_LOW:
+		if self.object_area < AREA_THRESHOLD_LOW:
 			self.change_forward_thrust(FORWARD_THRUST_INCREASE)
 			return False
-		elif self.object_area/(CAMERA_WIDTH*CAMERA_HEIGHT) > AREA_THRESHOLD_HIGH:
+		elif self.object_area > AREA_THRESHOLD_HIGH:
 			self.change_forward_thrust(-FORWARD_THRUST_INCREASE)
 			return False
 		else:
@@ -151,7 +155,7 @@ class TrackObjectState(smach.State):
 		# only increase/decrease thrust every 200 ticks
 		if self.timer % 200 != 0:
 			return
-
+		
 		# ensure thrust cannot exceed 280 or -280
 		self.forward_thrust = self.forward_thrust + amount
 		if self.forward_thrust > MAX_FORWARD_THRUST:
@@ -171,8 +175,8 @@ class ChangeDepthState(smach.State):
 		self.threshold = threshold
 
 		self.depth_current = 0 # in inches
-		rospy.Subscriber('/depth_control/state', Int16, self.depth_callback)
-		self.depth_publisher = rospy.Publisher('/depth_control/setpoint', Int16, queue_size=10)
+		rospy.Subscriber('/depth', Int16, self.depth_callback)
+		self.depth_publisher = rospy.Publisher('/depth_control/setpoint', Float64, queue_size=10)
 
 		self.has_reset = False
 		self.reset_subscriber = rospy.Subscriber('/reset', Bool, self.reset_callback)
@@ -196,7 +200,7 @@ class ChangeDepthState(smach.State):
 
 	def change_depth(self, amount):
 		new_depth = Float64()
-		new_depth.data = self.depth + amount
+		new_depth.data = self.depth_current + amount
 		self.depth_publisher.publish(new_depth)
 
 
