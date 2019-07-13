@@ -18,8 +18,6 @@ CENTER_PADDING_Y = 5
 
 AREA_THRESHOLD_LOW = 0.85
 AREA_THRESHOLD_HIGH = 0.90
-TORPEDO_Y_OFFSET = 10
-WAIT_TIME = 10000
 
 class Reset(smach.State):
 	def __init__(self):

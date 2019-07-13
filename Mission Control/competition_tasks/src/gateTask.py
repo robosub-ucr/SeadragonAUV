@@ -45,10 +45,12 @@ import smach
 import smach_ros
 from std_msgs.msg import Bool, Float64, Int16
 
+import seadragon_states as state
+
 ##----------------------------- END IMPORTS -------------------------------------##
 
-depth_start = 18 #depth is in inches
-desired_orientation = 1.57 # will change acording to direction of gate
+DEPTH_START = 18 #depth is in inches
+YAW_GATE = 1.57 # will change acording to direction of gate
 turn = 0.26 # degrees to turn after track state
 buoy_depth = 36 # depth (in inches) for the buoys
 gate_timer = 10000 #time to pass gate
@@ -74,7 +76,7 @@ class IDLE(smach.State):
 		# Push down about two inches to start state machine
 		if self.gateEnabled:
 			# Set depth setpoint FIXME 48 - 4ft, 120 - 10ft
-			self.depthPoint.data = depth_start
+			self.depthPoint.data = DEPTH_START
 			self.depthPoint_publisher.publish(self.depthPoint)
 			# Enable depth pid
 			self.depthEnable.data = True
@@ -91,7 +93,7 @@ class DIVE(smach.State):
 	
 		self.currDepth_subscriber	= rospy.Subscriber('/depth_control/state', Int16, self.depth_callback)
 		self.currDepth = 0
-		self.depthPoint = depth_start
+		self.depthPoint = DEPTH_START
 
 		self.yawPoint_publisher = rospy.Publisher('/yaw_control/setpoint', Float64, queue_size=10)
 		self.yawPoint = Float64()
@@ -118,7 +120,7 @@ class DIVE(smach.State):
 		if abs(self.depthPoint - self.currDepth) > 2:
 			return 'notready'
 		else:
-			self.yawPoint.data = desired_orientation
+			self.yawPoint.data = YAW_GATE
 			self.yawPoint_publisher.publish(self.yawPoint)
 			# Enable depth pid
 			self.yawEnable.data = True
@@ -136,7 +138,7 @@ class ORIENTATION(smach.State):
 		self.curryaw_subscriber	= rospy.Subscriber('/yaw_control/state', Float64, self.yaw_callback)
 		
 		# Local Variables
-		self.yawPoint = desired_orientation
+		self.yawPoint = YAW_GATE
 		self.orientation = 0
 		self.reset = False
 
@@ -419,29 +421,36 @@ def main():
 	sis = smach_ros.IntrospectionServer('server_name', sm, '/SM_GATE_TASK')
 	sis.start()
 
+	gate_topic = {
+		'x':'gate_x',
+		'y':'gate_y',
+		'area':'gate_area'
+	}
+
 	# Open SMACH container
 	with sm:
-		# Add states to the container
-		smach.StateMachine.add('IDLE', IDLE(), 
-					transitions={'notready':'IDLE','ready':'DIVE'})
-		smach.StateMachine.add('DIVE', DIVE(),
-					transitions={'notready':'DIVE','ready':'ORIENTATION', 'reset':'RESET'})
-		smach.StateMachine.add('ORIENTATION', ORIENTATION(),
-					transitions={'wait':'ORIENTATION','continue':'TRACK', 'reset':'RESET'})	
-		smach.StateMachine.add('TRACK',TRACK(),
-					transitions ={'area>90':'TURN','track':'TRACK', 'reset':'RESET'})
-		smach.StateMachine.add('TURN', TURN(),
-					transitions ={'reset':'RESET', 'pass':'PASS', 'wait':'TURN'})
-		smach.StateMachine.add('PASS',PASS(),
-					transitions ={'wait':'PASS','timer':'SET_DEPTH', 'reset':'RESET'})
-		smach.StateMachine.add('SET_DEPTH',SET_DEPTH(),
-					transitions ={'depth':'REORIENT','wait':'SET_DEPTH', 'reset':'RESET'})
-		smach.StateMachine.add('REORIENT', REORIENT(),
-					transitions ={'reset':'RESET', 'complete':'COMPLETED', 'wait':'REORIENT'})
-		smach.StateMachine.add('COMPLETED',COMPLETED(),
-					transitions ={'done':'IDLE'})
-		smach.StateMachine.add('RESET',RESET(),
-					transitions ={'restart':'IDLE'})
+		smach.StateMachine.add('IDLE', state.WaitForTopic('/gate_enable'), 
+			transitions={'done':'START', 'notdone':'IDLE'})
+		smach.StateMachine.add('START', state.PublishTopic('/depth_control/pid_enable', True), 
+			transitions={'done':'DIVE', 'notdone':'START'})
+		smach.StateMachine.add('DIVE', state.ChangeDepthToTarget(18), 
+			transitions={'done':'ORIENTATION', 'notdone':'DIVE', 'reset':'RESET'})
+		smach.StateMachine.add('ORIENTATION', state.RotateYawToAbsoluteTarget(1.57), 
+			transitions={'done':'TRACK', 'notdone':'ORIENTATION', 'reset':'RESET'})	
+		smach.StateMachine.add('TRACK', state.TrackObject(gate_topic, 0, 0), 
+			transitions ={'done':'TURN', 'notdone':'TRACK', 'reset':'RESET'})
+		smach.StateMachine.add('TURN', state.RotateYawToRelativeTarget(-0.017*5), 
+			transitions ={'done':'PASS', 'notdone':'TURN', 'reset':'RESET'})
+		smach.StateMachine.add('PASS', state.MoveForwardTimed(10000, True), 
+			transitions ={'done':'SET_DEPTH','notdone':'PASS', 'reset':'RESET'})
+		smach.StateMachine.add('SET_DEPTH', state.ChangeDepthToTarget(5*12), 
+			transitions ={'done':'REORIENT','notdone':'SET_DEPTH', 'reset':'RESET'})
+		smach.StateMachine.add('REORIENT', state.RotateYawToAbsoluteTarget(0.017 * 45), 
+			transitions ={'done':'COMPLETED', 'notdone':'REORIENT', 'reset':'RESET'})
+		smach.StateMachine.add('COMPLETED', state.PublishTopic('task_complete', True), 
+			transitions ={'done':'IDLE'})
+		smach.StateMachine.add('RESET', state.Reset(), 
+			transitions ={'done':'IDLE'})
 
 	# Execute State Machine
 	outcome = sm.execute()

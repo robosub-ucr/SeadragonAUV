@@ -8,11 +8,8 @@ from std_msgs.msg import Bool, Float64, Int16
 
 import seadragon_states as state
 
-
-
 WAIT_TIME = 10000
 TORPEDO_Y_OFFSET = 10
-
 
 def main():
 	rospy.init_node('torpedo_task_state_machine')
