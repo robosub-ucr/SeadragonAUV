@@ -21,6 +21,14 @@ AREA_THRESHOLD_HIGH = 0.90
 TORPEDO_Y_OFFSET = 10
 WAIT_TIME = 10000
 
+class Reset(smach.State):
+	def __init__(self):
+		smach.State.__init__(self, outcomes=['done'])
+
+	def execute(self, userdata):
+		# Currently, this state does nothing
+		return 'done'
+
 
 class WaitForTopic(smach.State):
 	def __init__(self, topic):
