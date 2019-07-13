@@ -432,7 +432,7 @@ def main():
 		smach.StateMachine.add('IDLE', state.WaitForTopic('/gate_enable'), 
 			transitions={'done':'START', 'notdone':'IDLE'})
 		smach.StateMachine.add('START', state.PublishTopic('/depth_control/pid_enable', True), 
-			transitions={'done':'DIVE', 'notdone':'START'})
+			transitions={'done':'DIVE'})
 		smach.StateMachine.add('DIVE', state.ChangeDepthToTarget(18), 
 			transitions={'done':'ORIENTATION', 'notdone':'DIVE', 'reset':'RESET'})
 		smach.StateMachine.add('ORIENTATION', state.RotateYawToAbsoluteTarget(1.57), 
