@@ -249,7 +249,7 @@ def main():
 			transitions={'ready':'TRACK_BOARD', 'notready':'IDLE'})
 		smach.StateMachine.add('TRACK_BOARD', TrackObjectState(board_topic, 0), 
 			transitions={'done':'TRACK_HEART', 'notdone':'TRACK_BOARD', 'reset':'RESET'})
-		smach.StateMachine.add('TRACK_HEART', TrackObjectState(heart_topic, TORPEDO_Y_OFFSET), 
+		smach.StateMachine.add('TRACK_HEART', TrackObjectState(heart_topic, 0, TORPEDO_Y_OFFSET), 
 			transitions={'done':'SHOOT', 'notdone':'TRACK_HEART', 'reset':'RESET'})
 		smach.StateMachine.add('SHOOT', ShootTorpedoState(), 
 			transitions={'done':'WAIT', 'notdone':'SHOOT', 'reset':'RESET'})
