@@ -6,6 +6,8 @@ import smach
 import smach_ros
 from std_msgs.msg import Bool, Float64, Int16
 
+import states.py
+
 CAMERA_WIDTH = 400
 CAMERA_HEIGHT = 300
 CENTER_PADDING_X = 5
