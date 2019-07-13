@@ -25,19 +25,22 @@ TODO
 
 TODO
 
-### Running tests
+### Running ROS tests
 
-To start ROS: 
-1. Open a terminal
-2. Type `roscore`
-3. Go to the `SeadragonAUV/Mission Control/competition_tasks/src/` folder.
-4. Open another terminal.
-5. Type `python master.py` or any other python file. The program corresponding task should start running. It should look similar to this:
-`[INFO] [123456789.987654]: State machine transitioning 'IDLE':'notready' --> 'IDLE'`
-6. Open another terminal.
-7. To publish a topic, type `rostopic pub ` followed by any of the following topics:
+1. Open a terminal on any directory and type `roscore`
+2. Go to the `SeadragonAUV/Mission Control/competition_tasks/src/` folder.
+3. Open a new terminal for each of the following:
 ```
-/depth std_msgs/Int16 “data: 1”
-/yaw_control/setpoint std_msgs/Float64 “data: 1.0”
-/yaw_control/state std_msgs/Float64 “data: 1.0”
+python master.py
+python gateTask.py
+python buoyTask.py
+python torpedoTask.py
 ```
+Each terminal should constantly print out a message similar to this one: `[INFO] [123456789.987654]: State machine transitioning 'IDLE':'notready' --> 'IDLE'`
+5. Open another terminal. Type of each these commands, each followed by ctrl-C:
+```
+rostopic pub /depth std_msgs/Int16 "data: 13"
+rostopic pub /depth_control/state std_msgs/Int16 "data: 18"
+rostopic pub /yaw_control/state std_msgs/Float64 "data: 1.57"
+```
+Tip: After typing the /topic_name and SPACE, you can press Tab twice to autofill the rest of the command.
