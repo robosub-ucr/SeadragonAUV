@@ -1,3 +1,8 @@
+import numpy as np
+import rospy
+import smach
+import smach_ros
+from std_msgs.msg import Bool, Float64, Int16
 
 FORWARD_THRUST_MAX = 280
 FORWARD_THRUST_CHANGE = 1
