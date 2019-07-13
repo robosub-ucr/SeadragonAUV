@@ -296,7 +296,7 @@ class RotateYawToRelativeTarget(smach.State):
 			self.reset_values()
 			return 'done'
 
-		new_yaw = Int16()
+		new_yaw = Float64()
 		if self.yaw < self.yaw_target:
 			new_yaw.data = self.yaw + YAW_CHANGE
 		else: # yaw > yaw_target
@@ -345,7 +345,7 @@ class RotateYawToAbsoluteTarget(smach.State):
 			self.reset_values()
 			return 'done'
 
-		new_yaw = Int16()
+		new_yaw = Float64()
 		if self.yaw < self.yaw_target:
 			new_yaw.data = self.yaw + YAW_CHANGE
 		else: # yaw > yaw_target
