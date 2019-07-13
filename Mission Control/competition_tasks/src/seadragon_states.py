@@ -372,7 +372,6 @@ class MoveForwardTimed(smach.State):
 
 		self.ticks = 0
 		self.duration = duration
-		self.forward_change = forward_change
 		self.is_forward = is_forward
 
 		self.forward_thrust_publisher = rospy.Publisher('/yaw_pwn', Int16, queue_size=10)
