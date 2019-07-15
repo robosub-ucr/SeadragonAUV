@@ -113,6 +113,54 @@ class WaitTimed(smach.State):
 		self.ticks = 0
 		self.reset = False
 
+class SetDepth(smach.State):
+	def __init__(self, depth_target):
+		smach.State.__init__(self, outcomes=['done'])
+
+		self.depth_target = depth_target
+		self.depth_publisher = rospy.Publisher('/depth_control/setpoint', Int16, queue_size=10)
+
+	def execute(self, userdata):
+		depth = Int16()
+		depth.data = self.depth_target
+		self.depth_publisher.publish(depth)
+
+class WaitUntilDepthReachesSetpoint(smach.State):
+	def __init__(self):
+		smach.State.__init__(self):
+
+		self.depth_state = -1 # Assuming depth cannot be a negative number
+		self.depth_setpoint = -1
+		self.reset = False
+
+		rospy.Subscriber('/depth_control/state', Int16, self.depth_state_callback)
+		rospy.Subscriber('/depth_control/setpoint', Int16, self.depth_setpoint_callback)
+		rospy.Subscriber('/reset', Int16, self.reset_callback)
+
+	def depth_state_callback(self, msg):
+		self.depth_state = msg.data
+	def depth_setpoint_callback(self, msg):
+		self.depth_setpoint = msg.data
+	def reset_callback(self, msg):
+		self.reset = msg.data
+
+	def execute(self, userdata):
+		if self.reset:
+			self.reset_values()
+			return 'reset'
+
+		if self.depth_state >= 0 and self.depth_setpoint >= 0 and abs(self.depth_state - self.depth_setpoint) < DEPTH_VARIANCE:
+			self.reset_values()
+			return 'done'
+		else:
+			return 'notdone'
+
+	def reset_values(self):
+		self.depth_state = -1
+		self.depth_setpoint = -1
+		self.reset = False
+
+
 class ChangeDepthToTarget(smach.State):
 	# This state causes the robot to change its depth until it is within certain distance of the target depth
 	# 
@@ -166,116 +214,116 @@ class ChangeDepthToTarget(smach.State):
 		self.depth_published = False
 
 
-class ChangeDepthTimed(smach.State):
-	# This state causes the robot to change its depth for a set amount of ticks
-	# 
-	# Arguments:
-	#   duration (int): amount of ticks this state lasts
-	#   is_downward (bool): determines if depth increases or decreases
-	def __init__(self, duration, is_downward=True):
-		smach.State.__init__(self, outcomes=['done', 'notdone', 'reset'])
+# class ChangeDepthTimed(smach.State):
+# 	# This state causes the robot to change its depth for a set amount of ticks
+# 	# 
+# 	# Arguments:
+# 	#   duration (int): amount of ticks this state lasts
+# 	#   is_downward (bool): determines if depth increases or decreases
+# 	def __init__(self, duration, is_downward=True):
+# 		smach.State.__init__(self, outcomes=['done', 'notdone', 'reset'])
 
-		self.ticks = 0
-		self.duration = duration
-		self.is_downward = is_downward
+# 		self.ticks = 0
+# 		self.duration = duration
+# 		self.is_downward = is_downward
 
-		self.depth = 0
-		self.depth_received = False
-		self.reset = False
-		rospy.Subscriber('/depth_control/state', Int16, self.depth_callback)
-		rospy.Subscriber('/reset', Bool, self.reset_callback)
+# 		self.depth = 0
+# 		self.depth_received = False
+# 		self.reset = False
+# 		rospy.Subscriber('/depth_control/state', Int16, self.depth_callback)
+# 		rospy.Subscriber('/reset', Bool, self.reset_callback)
 
-		self.depth_publisher = rospy.Publisher('/depth_control/setpoint', Int16, queue_size=10)
+# 		self.depth_publisher = rospy.Publisher('/depth_control/setpoint', Int16, queue_size=10)
 
-	def depth_callback(self, msg):
-		self.depth = msg.data
-		self.depth_received = True
+# 	def depth_callback(self, msg):
+# 		self.depth = msg.data
+# 		self.depth_received = True
 
-	def reset_callback(self, msg):
-		self.reset = msg.data
+# 	def reset_callback(self, msg):
+# 		self.reset = msg.data
 
-	def execute(self, userdata):
-		if self.reset:
-			self.reset_values()
-			return 'reset'
+# 	def execute(self, userdata):
+# 		if self.reset:
+# 			self.reset_values()
+# 			return 'reset'
 
-		if not self.depth_received:
-			return 'notdone'
+# 		if not self.depth_received:
+# 			return 'notdone'
 
-		self.ticks += 1
-		if self.ticks >= self.duration:
-			self.reset_values()
-			return 'done'
-		else:
-			new_depth = Int16()
-			if self.is_downward:
-				new_depth.data = self.depth + DEPTH_CHANGE
-			else:
-				new_depth.data = self.depth - DEPTH_CHANGE
-			self.depth_publisher.publish(new_depth)
-			return 'notdone'
+# 		self.ticks += 1
+# 		if self.ticks >= self.duration:
+# 			self.reset_values()
+# 			return 'done'
+# 		else:
+# 			new_depth = Int16()
+# 			if self.is_downward:
+# 				new_depth.data = self.depth + DEPTH_CHANGE
+# 			else:
+# 				new_depth.data = self.depth - DEPTH_CHANGE
+# 			self.depth_publisher.publish(new_depth)
+# 			return 'notdone'
 
-	def reset_values(self):
-		self.depth = 0
-		self.depth_received = False
-		self.reset = False
-		self.ticks = 0
+# 	def reset_values(self):
+# 		self.depth = 0
+# 		self.depth_received = False
+# 		self.reset = False
+# 		self.ticks = 0
 
 
-class RotateYawTimed(smach.State):
-	# This state causes the robot to rotate about the y-axis for a set amount of time
-	# 
-	# Arguments:
-	#   ticks (int)
-	#   is_clockwise (bool): determines if the robot rotates clockswise or counterclockwise
-	def __init__(self, duration, is_clockwise=True):
-		smach.State.__init__(self, outcomes=['done', 'notdone', 'reset'])
+# class RotateYawTimed(smach.State):
+# 	# This state causes the robot to rotate about the y-axis for a set amount of time
+# 	# 
+# 	# Arguments:
+# 	#   ticks (int)
+# 	#   is_clockwise (bool): determines if the robot rotates clockswise or counterclockwise
+# 	def __init__(self, duration, is_clockwise=True):
+# 		smach.State.__init__(self, outcomes=['done', 'notdone', 'reset'])
 
-		self.duration = duration
-		self.is_clockwise = is_clockwise
+# 		self.duration = duration
+# 		self.is_clockwise = is_clockwise
 
-		self.ticks = 0
-		self.yaw = 0
-		self.yaw_received = False
-		self.reset = False
-		rospy.Subscriber('/yaw_control/state', Float64, self.yaw_callback)
-		rospy.Subscriber('/reset', Bool, self.reset_callback)
+# 		self.ticks = 0
+# 		self.yaw = 0
+# 		self.yaw_received = False
+# 		self.reset = False
+# 		rospy.Subscriber('/yaw_control/state', Float64, self.yaw_callback)
+# 		rospy.Subscriber('/reset', Bool, self.reset_callback)
 
-		self.yaw_publisher = rospy.Publisher('yaw_control/setpoint', Float64, queue_size=10)
+# 		self.yaw_publisher = rospy.Publisher('yaw_control/setpoint', Float64, queue_size=10)
 
-	def reset_callback(self, msg):
-		self.reset = msg.data
+# 	def reset_callback(self, msg):
+# 		self.reset = msg.data
 
-	def yaw_callback(self, msg):
-		self.yaw = msg.data
-		self.yaw_received = True
+# 	def yaw_callback(self, msg):
+# 		self.yaw = msg.data
+# 		self.yaw_received = True
 
-	def execute(self, userdata):
-		if self.reset:
-			self.reset_values()
-			return 'reset'
+# 	def execute(self, userdata):
+# 		if self.reset:
+# 			self.reset_values()
+# 			return 'reset'
 
-		if not self.yaw_received:
-			return 'notdone'
+# 		if not self.yaw_received:
+# 			return 'notdone'
 
-		self.ticks += 1
-		if self.ticks >= self.duration:
-			self.reset_values()
-			return 'done'
+# 		self.ticks += 1
+# 		if self.ticks >= self.duration:
+# 			self.reset_values()
+# 			return 'done'
 		
-		new_yaw = Float64()
-		if self.is_clockwise:
-			new_yaw.data = self.yaw + YAW_CHANGE
-		else:
-			new_yaw.data = self.yaw - YAW_CHANGE
-		self.yaw_publisher.publish(new_yaw)
-		return 'notdone'
+# 		new_yaw = Float64()
+# 		if self.is_clockwise:
+# 			new_yaw.data = self.yaw + YAW_CHANGE
+# 		else:
+# 			new_yaw.data = self.yaw - YAW_CHANGE
+# 		self.yaw_publisher.publish(new_yaw)
+# 		return 'notdone'
 
-	def reset_values(self):
-		self.ticks = 0
-		self.yaw = 0
-		self.yaw_received = False
-		self.reset = False
+# 	def reset_values(self):
+# 		self.ticks = 0
+# 		self.yaw = 0
+# 		self.yaw_received = False
+# 		self.reset = False
 
 class RotateYawToRelativeTarget(smach.State):
 	# This state causes the robot to rotate to a yaw (relative from its current rotation)
@@ -288,8 +336,10 @@ class RotateYawToRelativeTarget(smach.State):
 		self.yaw_change = yaw_change
 
 		self.yaw = 0
-		self.yaw_target = 0
+		self.yaw_target = Float64()
+		self.yaw_target.data = 0
 		self.yaw_received = False
+		self.yaw_published = False
 		self.reset = False
 		rospy.Subscriber('/yaw_control/state', Float64, self.yaw_callback)
 		rospy.Subscriber('/reset', Float64, self.reset_callback)
@@ -302,7 +352,7 @@ class RotateYawToRelativeTarget(smach.State):
 	def yaw_callback(self, msg):
 		self.yaw = msg.data
 		self.yaw_received = True
-		self.yaw_target = self.yaw + self.yaw_change
+		self.yaw_target.data = self.yaw + self.yaw_change
 
 	def execute(self, userdata):
 		if self.reset:
@@ -312,22 +362,22 @@ class RotateYawToRelativeTarget(smach.State):
 		if not self.yaw_received:
 			return 'notdone'
 
+		if not self.yaw_published:
+			self.yaw_publisher.publish(self.yaw_target)
+			self.yaw_published = True
+			return 'notdone'
+
 		if abs(self.yaw - self.yaw_target) < YAW_VARIANCE:
 			self.reset_values()
 			return 'done'
-
-		new_yaw = Float64()
-		if self.yaw < self.yaw_target:
-			new_yaw.data = self.yaw + YAW_CHANGE
-		else: # yaw > yaw_target
-			new_yaw.data = self.yaw - YAW_CHANGE
-		self.yaw_publisher.publish(new_yaw)
-		return 'notdone'
+		else:
+			return 'notdone'
 
 	def reset_values(self):
 		self.yaw = 0
 		self.yaw_target = 0
 		self.yaw_received = False
+		self.yaw_published = False
 		self.reset = False
 
 
