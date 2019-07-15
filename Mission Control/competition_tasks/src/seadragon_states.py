@@ -367,7 +367,7 @@ class RotateYawToRelativeTarget(smach.State):
 			self.yaw_published = True
 			return 'notdone'
 
-		if abs(self.yaw - self.yaw_target) < YAW_VARIANCE:
+		if abs(self.yaw - self.yaw_target.data) < YAW_VARIANCE:
 			self.reset_values()
 			return 'done'
 		else:
@@ -375,7 +375,7 @@ class RotateYawToRelativeTarget(smach.State):
 
 	def reset_values(self):
 		self.yaw = 0
-		self.yaw_target = 0
+		self.yaw_target.data = 0
 		self.yaw_received = False
 		self.yaw_published = False
 		self.reset = False
