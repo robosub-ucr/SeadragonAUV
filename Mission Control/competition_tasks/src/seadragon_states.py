@@ -113,52 +113,52 @@ class WaitTimed(smach.State):
 		self.ticks = 0
 		self.reset = False
 
-class SetDepth(smach.State):
-	def __init__(self, depth_target):
-		smach.State.__init__(self, outcomes=['done'])
+# class SetDepth(smach.State):
+# 	def __init__(self, depth_target):
+# 		smach.State.__init__(self, outcomes=['done'])
 
-		self.depth_target = depth_target
-		self.depth_publisher = rospy.Publisher('/depth_control/setpoint', Int16, queue_size=10)
+# 		self.depth_target = depth_target
+# 		self.depth_publisher = rospy.Publisher('/depth_control/setpoint', Int16, queue_size=10)
 
-	def execute(self, userdata):
-		depth = Int16()
-		depth.data = self.depth_target
-		self.depth_publisher.publish(depth)
+# 	def execute(self, userdata):
+# 		depth = Int16()
+# 		depth.data = self.depth_target
+# 		self.depth_publisher.publish(depth)
 
-class WaitUntilDepthReachesSetpoint(smach.State):
-	def __init__(self):
-		smach.State.__init__(self):
+# class WaitUntilDepthReachesSetpoint(smach.State):
+# 	def __init__(self):
+# 		smach.State.__init__(self)
 
-		self.depth_state = -1 # Assuming depth cannot be a negative number
-		self.depth_setpoint = -1
-		self.reset = False
+# 		self.depth_state = -1 # Assuming depth cannot be a negative number
+# 		self.depth_setpoint = -1
+# 		self.reset = False
 
-		rospy.Subscriber('/depth_control/state', Int16, self.depth_state_callback)
-		rospy.Subscriber('/depth_control/setpoint', Int16, self.depth_setpoint_callback)
-		rospy.Subscriber('/reset', Int16, self.reset_callback)
+# 		rospy.Subscriber('/depth_control/state', Int16, self.depth_state_callback)
+# 		rospy.Subscriber('/depth_control/setpoint', Int16, self.depth_setpoint_callback)
+# 		rospy.Subscriber('/reset', Int16, self.reset_callback)
 
-	def depth_state_callback(self, msg):
-		self.depth_state = msg.data
-	def depth_setpoint_callback(self, msg):
-		self.depth_setpoint = msg.data
-	def reset_callback(self, msg):
-		self.reset = msg.data
+# 	def depth_state_callback(self, msg):
+# 		self.depth_state = msg.data
+# 	def depth_setpoint_callback(self, msg):
+# 		self.depth_setpoint = msg.data
+# 	def reset_callback(self, msg):
+# 		self.reset = msg.data
 
-	def execute(self, userdata):
-		if self.reset:
-			self.reset_values()
-			return 'reset'
+# 	def execute(self, userdata):
+# 		if self.reset:
+# 			self.reset_values()
+# 			return 'reset'
 
-		if self.depth_state >= 0 and self.depth_setpoint >= 0 and abs(self.depth_state - self.depth_setpoint) < DEPTH_VARIANCE:
-			self.reset_values()
-			return 'done'
-		else:
-			return 'notdone'
+# 		if self.depth_state >= 0 and self.depth_setpoint >= 0 and abs(self.depth_state - self.depth_setpoint) < DEPTH_VARIANCE:
+# 			self.reset_values()
+# 			return 'done'
+# 		else:
+# 			return 'notdone'
 
-	def reset_values(self):
-		self.depth_state = -1
-		self.depth_setpoint = -1
-		self.reset = False
+# 	def reset_values(self):
+# 		self.depth_state = -1
+# 		self.depth_setpoint = -1
+# 		self.reset = False
 
 
 class ChangeDepthToTarget(smach.State):
