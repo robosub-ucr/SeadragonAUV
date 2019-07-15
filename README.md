@@ -44,3 +44,15 @@ rostopic pub /depth_control/state std_msgs/Int16 "data: 18"
 rostopic pub /yaw_control/state std_msgs/Float64 "data: 1.57"
 ```
 Tip: After typing the /topic_name and SPACE, you can press Tab twice to autofill the rest of the command.
+
+
+
+### Jetson + ROS tests
+1. Open a terminal and `roscore`
+2. Open another terminal and type:
+```
+sudo chmod 666 /dev/ttyACM0
+rosrun rosserial_python serial_node.py /dev/ttyACM0
+```
+Note: if ACM0 doesnt work (an error occurs), try ACM1 or type `ls /dev/ttyACM` and tab to see which file # exists.
+

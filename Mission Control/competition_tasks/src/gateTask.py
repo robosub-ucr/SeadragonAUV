@@ -447,7 +447,7 @@ def main():
 			transitions ={'done':'REORIENT','notdone':'SET_DEPTH', 'reset':'RESET'})
 		smach.StateMachine.add('REORIENT', state.RotateYawToAbsoluteTarget(0.017 * 45), 
 			transitions ={'done':'COMPLETED', 'notdone':'REORIENT', 'reset':'RESET'})
-		smach.StateMachine.add('COMPLETED', state.PublishTopic('task_complete', True), 
+		smach.StateMachine.add('COMPLETED', state.PublishTopic('/task_complete', True), 
 			transitions ={'done':'IDLE'})
 		smach.StateMachine.add('RESET', state.Reset(), 
 			transitions ={'done':'IDLE'})

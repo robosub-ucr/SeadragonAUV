@@ -16,8 +16,20 @@ CAMERA_HEIGHT = 300
 CENTER_PADDING_X = 5
 CENTER_PADDING_Y = 5
 
-AREA_THRESHOLD_LOW = 0.85
-AREA_THRESHOLD_HIGH = 0.90
+AREA_THRESHOLD_LOW = 0.12
+AREA_THRESHOLD_HIGH = 0.15
+
+# Reset 					currently does nothing
+# WaitForTopic 				waits until Bool topic is True
+# PublishTopic 				publishes topic
+# WaitTimed 				wait for x ticks
+# ChangeDepthToTarget 		increase/decrease depth 
+# ChangeDepthTimed 			increase/decrease depth 
+# RotateYawTimed 			rotate yaw for x ticks
+# RotateYawToRelativeTarget rotate yaw until it reaches x rotation relative to initial (at start of this state) rotation
+# RotateYawToAbsoluteTarget rotate yaw until it reaches x rotation
+# MoveForwardTimed 			increase/decrease thrust for x ticks
+# TrackObject 				change thrust, rotate yaw, and change depth until the object's (x,y) is within center of camera and until object's area is within threshold
 
 class Reset(smach.State):
 	def __init__(self):
@@ -51,6 +63,7 @@ class WaitForTopic(smach.State):
 
 class PublishTopic(smach.State):
 	# This state publishes a value to a topic and then it immediately moves to the next state
+	# 
 	# Arguments:
 	#   topic (string)
 	#   value (bool)
@@ -68,9 +81,10 @@ class PublishTopic(smach.State):
 
 
 class WaitTimed(smach.State):
-	# This state causes the robot to do nothing for a set amount of ticks
+	# This state causes the robot to do nothing for a certain duration
+	# 
 	# Arguments:
-	#   duration (int): amount of ticks this state lasts
+	#   duration (int): amount of ticks that this state lasts
 	def __init__(self, duration):
 		smach.State.__init__(self, outcomes=['done', 'notdone', 'reset'])
 
@@ -208,6 +222,7 @@ class ChangeDepthTimed(smach.State):
 
 class RotateYawTimed(smach.State):
 	# This state causes the robot to rotate about the y-axis for a set amount of time
+	# 
 	# Arguments:
 	#   ticks (int)
 	#   is_clockwise (bool): determines if the robot rotates clockswise or counterclockwise
@@ -260,8 +275,11 @@ class RotateYawTimed(smach.State):
 		self.yaw_received = False
 		self.reset = False
 
-
 class RotateYawToRelativeTarget(smach.State):
+	# This state causes the robot to rotate to a yaw (relative from its current rotation)
+	# 
+	# Arguments:
+	#   yaw_change (float)
 	def __init__(self, yaw_change):
 		smach.State.__init__(self, outcomes=['done', 'notdone', 'reset'])
 
@@ -312,7 +330,10 @@ class RotateYawToRelativeTarget(smach.State):
 
 
 class RotateYawToAbsoluteTarget(smach.State):
-	# This state causes the robot to rotate towards a target
+	# This state causes the robot to rotate towards a an absolute rotation (on the Earth)
+	# 
+	# Arguments:
+	#   yaw_target (float)
 	def __init__(self, yaw_target):
 		smach.State.__init__(self, outcomes=['done', 'notdone', 'reset'])
 
@@ -426,6 +447,17 @@ class MoveForwardTimed(smach.State):
 
 
 class TrackObject(smach.State):
+	# This state causes the robot to move towards an object
+	# This state is subscribed to the object's X, Y, and area. And uses them to determine what action to take:
+	#   increase/decrease forward thrust 			until area is within threshold
+	#   increase/decrease depth 					until object's Y is within camera's center (height/2)
+	#   change rotation about its y-axis (yaw) 		until object's X is within camera's center (width/2)
+	# Note that forward thrust is not used until the X and Y are centered
+	# 
+	# Arguments:
+	#   obj_topic (object)	contains strings for the topics to subscribe to. Must be in this format: {'x': string, 'y': string, 'area': string}
+	#   xoffset, yoffset (int) the offsets from the center of the screen. Use this if you want to move towards 
+
 	def __init__(self, obj_topic, xoffset=0, yoffset=0):
 		smach.State.__init__(self, outcomes=['done', 'notdone', 'reset'])
 
