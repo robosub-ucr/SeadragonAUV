@@ -121,9 +121,11 @@ class ChangeDepthToTarget(smach.State):
 	def __init__(self, depth_target):
 		smach.State.__init__(self, outcomes=['done', 'notdone', 'reset'])
 
-		self.depth_target = depth_target
+		self.depth_target = Int16()
+		self.depth_target.data = depth_target
 
 		self.depth_received = False
+		self.depth_published = False
 		self.depth = 0
 		self.reset = False
 		rospy.Subscriber('/depth_control/state', Int16, self.depth_callback)
@@ -146,22 +148,22 @@ class ChangeDepthToTarget(smach.State):
 		if not self.depth_received:
 			return 'notdone'
 
+		if not self.depth_published:
+			self.depth_publisher.publish(self.depth_target)
+			self.depth_published = True
+			return 'notdone'
+
 		if abs(self.depth - self.depth_target) < DEPTH_VARIANCE: # Note: depth == depth_target is included in this condition
 			self.reset_values()
 			return 'done'
-		
-		new_depth = Int16()
-		if self.depth < self.depth_target:
-			new_depth.data = self.depth + DEPTH_CHANGE
-		else: # depth > depth_target
-			new_depth.data = self.depth - DEPTH_CHANGE
-		self.depth_publisher.publish(new_depth)
-		return 'notdone'
+		else
+			return 'notdone'
 
 	def reset_values(self):
 		self.depth = 0
 		self.reset = False
 		self.depth_received = False
+		self.depth_published = False
 
 
 class ChangeDepthTimed(smach.State):
