@@ -156,7 +156,7 @@ class ChangeDepthToTarget(smach.State):
 		if abs(self.depth - self.depth_target) < DEPTH_VARIANCE: # Note: depth == depth_target is included in this condition
 			self.reset_values()
 			return 'done'
-		else
+		else:
 			return 'notdone'
 
 	def reset_values(self):
