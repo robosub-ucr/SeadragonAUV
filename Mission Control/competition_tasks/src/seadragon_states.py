@@ -153,7 +153,7 @@ class ChangeDepthToTarget(smach.State):
 			self.depth_published = True
 			return 'notdone'
 
-		if abs(self.depth - self.depth_target) < DEPTH_VARIANCE: # Note: depth == depth_target is included in this condition
+		if abs(self.depth - self.depth_target.data) < DEPTH_VARIANCE: # Note: depth == depth_target is included in this condition
 			self.reset_values()
 			return 'done'
 		else:
