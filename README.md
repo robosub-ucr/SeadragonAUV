@@ -42,10 +42,16 @@ Each terminal should constantly print out a message similar to this one: `[INFO]
 rostopic pub /depth std_msgs/Int16 "data: 13"
 rostopic pub /depth_control/state std_msgs/Int16 "data: 18"
 rostopic pub /yaw_control/state std_msgs/Float64 "data: 1.57"
+rostopic pub /gate_x std_msgs/Float64 "data: 200.0"
+rostopic pub /gate_y std_msgs/Float64 "data: 150.0"
+rostopic pub /gate_area std_msgs/Float64 "data: 15600.0"
+rostopic pub /yaw_control/state std_msgs/Float64 "data: 1.57"
+rostopic pub /yaw_control/state std_msgs/Float64 "data: 1.485"
+rostopic pub /depth_control/state std_msgs/Int16 "data: 60"
+rostopic pub /yaw_control/state std_msgs/Float64 "data: 0.765"
 ```
 Tip: After typing the /topic_name and SPACE, you can press Tab twice to autofill the rest of the command.
-
-
+These commands will move the master.py state machine from IDLE --> EXECUTE and the gateTask.py state machine through all of its states.
 
 ### Jetson + ROS tests
 1. Open a terminal and `roscore`
