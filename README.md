@@ -37,6 +37,7 @@ python buoyTask.py
 python torpedoTask.py
 ```
 Each terminal should constantly print out a message similar to this one: `[INFO] [123456789.987654]: State machine transitioning 'IDLE':'notready' --> 'IDLE'`
+
 5. Open another terminal. Type of each these commands, each followed by ctrl-C:
 ```
 rostopic pub /depth std_msgs/Int16 "data: 13"
