@@ -351,8 +351,10 @@ class RotateYawToRelativeTarget(smach.State):
 
 	def yaw_callback(self, msg):
 		self.yaw = msg.data
-		self.yaw_received = True
-		self.yaw_target.data = self.yaw + self.yaw_change
+		
+		if not self.yaw_received:
+			self.yaw_target.data = self.yaw + self.yaw_change
+			self.yaw_received = True
 
 	def execute(self, userdata):
 		if self.reset:
