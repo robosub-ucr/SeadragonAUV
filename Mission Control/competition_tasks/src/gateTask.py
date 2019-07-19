@@ -62,9 +62,9 @@ def main():
 	sis.start()
 
 	gate_topic = {
-		'x':'gate_x',
-		'y':'gate_y',
-		'area':'gate_area'
+		'x':'/gate_x',
+		'y':'/gate_y',
+		'area':'/gate_area'
 	}
 
 	# Open SMACH container
@@ -74,10 +74,14 @@ def main():
 		smach.StateMachine.add('DEPTH_PID_ENABLE', state.PublishTopic('/depth_control/pid_enable', True), 
 			transitions={'done':'DIVE_GATE_DEPTH'})
 		smach.StateMachine.add('DIVE_GATE_DEPTH', state.ChangeDepthToTarget(18), 
-			transitions={'done':'ROTATE_TO_GATE', 'notdone':'DIVE_GATE_DEPTH', 'reset':'RESET'})
+			transitions={'done':'YAW_PID_ENABLE', 'notdone':'DIVE_GATE_DEPTH', 'reset':'RESET'})
+
+		smach.StateMachine.add('YAW_PID_ENABLE', state.PublishTopic('/yaw_control/pid_enable', True), 
+			transitions={'done':'ROTATE_TO_GATE'}),
+
 		smach.StateMachine.add('ROTATE_TO_GATE', state.RotateYawToAbsoluteTarget(1.57), 
 			transitions={'done':'TRACK_GATE', 'notdone':'ROTATE_TO_GATE', 'reset':'RESET'})	
-		smach.StateMachine.add('TRACK_GATE', state.TrackObject(gate_topic, 0, 0), 
+		smach.StateMachine.add('TRACK_GATE', state.TrackObject(gate_topic), 
 			transitions ={'done':'ROTATE_GATE_LEFT', 'notdone':'TRACK_GATE', 'reset':'RESET'})
 		smach.StateMachine.add('ROTATE_GATE_LEFT', state.RotateYawToRelativeTarget(-0.017*5), 
 			transitions ={'done':'MOVE_FORWARD_GATE', 'notdone':'ROTATE_GATE_LEFT', 'reset':'RESET'})
