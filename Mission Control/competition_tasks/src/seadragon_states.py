@@ -114,27 +114,42 @@ class WaitTimed(smach.State):
 		self.reset = False
 
 
-class WaitUntilTopicDataReachesTarget(smach.State):
-	def __init__(self, topic, datatype, target, variance, minimum_time):
+class WaitForConvergence(smach.State):
+	# This state causes the robot to wait until the topic (e.g. /depth_control/state) reaches a target value +- variance
+	# The target value should be the same as that topic's setpoint (e.g. /depth_control/setpoint)
+	# Arguments:
+	#   topic_name (string)
+	#   datatype (object):  Int16(), Float64()
+	#   target (int or float)
+	#   variance (int or float)
+	#   minimum_time (int)
+	def __init__(self, topic_name, datatype, target, variance, minimum_time):
 		smach.State.__init__(self, outcomes=['done', 'notdone', 'reset'])
 
-		self.topic = topic
-		self.datatype = datatype
 		self.target = target
 		self.variance = variance
 		self.minimum_time = minimum_time
 
-		self.current = 0
+		self.topic_data = 0
 		self.timer = 0
+		self.reset = False
+		self.data_received = False
 		
-		rospy.Subscriber(self.topic, self.datatype, self.state_callback)
+		rospy.Subscriber(topic_name, datatype, self.state_callback)
+		rospy.Subscriber('/reset', Bool, self.reset_callback)
+
+	def reset_callback(self, msg):
+		self.reset = msg.data
 
 	def state_callback(self, msg):
-		self.current = msg.data
+		self.topic_data = msg.data
 		self.data_received = True
 
 	def execute(self, userdata):
-		if self.data_received and abs(self.current - self.target) <= self.variance:
+		if self.reset:
+			return 'reset'
+
+		if self.data_received and abs(self.topic_data - self.target) <= self.variance:
 			self.timer += 1
 
 		if self.timer >= self.minimum_time:
@@ -143,8 +158,10 @@ class WaitUntilTopicDataReachesTarget(smach.State):
 			return 'notdone'
 
 	def reset_values(self):
-		self.current = 0
+		self.topic_data = 0
 		self.timer = 0
+		self.reset = False
+		self.data_received = False
 
 
 class ChangeDepthToTarget(smach.State):
