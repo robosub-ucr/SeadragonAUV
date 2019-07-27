@@ -1,3 +1,4 @@
+import enum
 import numpy as np
 import rospy
 import smach
@@ -18,6 +19,33 @@ CENTER_PADDING_Y = 5
 
 AREA_THRESHOLD_LOW = 0.12
 AREA_THRESHOLD_HIGH = 0.15
+
+class TopicName(enum.Enum):
+  depth_control_state = "/depth_control/state"
+  depth_control_setpoint = "/depth_control/setpoint"
+
+  yaw_control_state = "/yaw_control/state"
+  yaw_control_setpoint = "/yaw_control/setpoint"
+
+  gate_x = "/gate_x"
+  gate_y = "/gate_y"
+  gate_area = "/gate_area"
+
+  buoy_flat_x = "/buoy_flat_x"
+  buoy_flat_y = "/buoy_flat_y"
+  buoy_flat_area = "/buoy_flat_area"
+
+  buoy_triangle_x = "/buoy_triangle_x"
+  buoy_triangle_y = "/buoy_triangle_y"
+  buoy_triangle_area = "/buoy_triangle_area"
+
+  torpedo_board_x = "/torpedo_board_x"
+  torpedo_board_y = "/torpedo_board_y"
+  torpedo_board_area = "/torpedo_board_area"
+
+  torpedo_heart_x = "/torpedo_heart_x"
+  torpedo_heart_y = "/torpedo_heart_y"
+  torpedo_heart_area = "/torpedo_heart_area"
 
 # Reset 					currently does nothing
 # WaitForTopic 				waits until Bool topic is True
