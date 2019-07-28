@@ -11,15 +11,15 @@ import math
 import numpy as np
 
 QUALIFY_DEPTH  = 72	# 6ft
-PRACTICE_DEPTH = 36	# 3ft
-START_DEPTH    = 12	# 1ft
-RESET_DEPTH    = 6	# .5ft
+PRACTICE_DEPTH = 12	# 3ft
+START_DEPTH    = 6	# 1ft
+RESET_DEPTH    = 0	# .5ft
 
 # define state init
 class init(smach.State):
     def __init__(self):
         smach.State.__init__(self, outcomes=['ready','notready'])
-	
+
 	self.yawPoint_publisher		= rospy.Publisher('/yaw_control/setpoint', Float64, queue_size=10)
 	self.yawPoint 			= Float64()
 	self.yawPoint.data 		= 0.0
@@ -34,8 +34,12 @@ class init(smach.State):
 	self.Enable 			= Bool()
 	self.Enable.data 		= True
 
+	self.currYaw_subscriber		= rospy.Subscriber('/yaw_control/state', Float64, self.yaw_callback)		
 	self.currDepth_subscriber     	= rospy.Subscriber('/depth', Int16, self.depth_callback)
 	self.depthStart = 0
+  
+    def yaw_callback(self, msg):
+	self.yawPoint.data = msg.data
     
     def depth_callback(self, msg):
 	self.depthStart = msg.data	
@@ -96,7 +100,7 @@ class dive(smach.State):
 		return 'reset'
 		
 	# Check if sub has reached its desired depth point
-	if self.error <=2:
+	if abs(self.error) <=2:
 		self.reset_variables()
 		return 'complete'
 	else:
@@ -153,7 +157,7 @@ class transition(smach.State):
 	if self.counter < 50000:
 		self.counter += 1
 		if self.counter % 200 == 0:	
-			if self.fwdThrust.data < 280:
+			if self.fwdThrust.data < 140:
 				self.fwdThrust.data += 1
 		self.fwdThrust_publisher.publish(self.fwdThrust)
 		return 'notcomplete'
@@ -318,8 +322,8 @@ def main():
         smach.StateMachine.add('DIVE', dive(), 
                                transitions={'complete':'FWD','notcomplete':'DIVE','reset':'RESET'})
 
-	smach.StateMachine.add('FWD', transition(False), 
-		 	       transitions={'complete':'TURN','notcomplete':'FWD','reset':'RESET'})
+	smach.StateMachine.add('FWD', transition(True), 
+		 	       transitions={'complete':'qualify','notcomplete':'FWD','reset':'RESET'})
 
 	smach.StateMachine.add('TURN', turn(),
 			       transitions={'done':'BACK','notdone':'TURN','reset':'RESET'})
