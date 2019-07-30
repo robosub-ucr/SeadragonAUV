@@ -9,11 +9,12 @@ from std_msgs.msg import Bool,  Float64, Int16
 from decimal import *
 import math
 import numpy as np
+from time import time
 
 QUALIFY_DEPTH  = 72	# 6ft
-PRACTICE_DEPTH = 12	# 3ft
-START_DEPTH    = 6	# 1ft
-RESET_DEPTH    = 0	# .5ft
+PRACTICE_DEPTH = 34	# 3ft
+START_DEPTH    = 18	# 1ft
+RESET_DEPTH    = 4	# .5ft
 
 # define state init
 class init(smach.State):
@@ -95,7 +96,7 @@ class dive(smach.State):
     def execute(self, userdata):
 	
 	# Check if kill Switch has been triggered to restart state machine
-	if self.resetDepth < RESET_DEPTH:
+	if self.resetDepth <= RESET_DEPTH:
 		self.reset_variables()
 		return 'reset'
 		
@@ -149,22 +150,23 @@ class transition(smach.State):
     def execute(self, userdata):
 
 	# Check if kill Switch has been triggered to restart state machine
-	if self.resetDepth < RESET_DEPTH:
+	if self.resetDepth <= RESET_DEPTH:
 		self.reset_variables()
 		return 'reset'
 	
 	# Accelerate until max cruising velocity
-	if self.counter < 50000:
+	if self.counter < 80000:
 		self.counter += 1
 		if self.counter % 200 == 0:	
 			if self.fwdThrust.data < 140:
-				self.fwdThrust.data += 1
+				self.fwdThrust.data += 70
 		self.fwdThrust_publisher.publish(self.fwdThrust)
 		return 'notcomplete'
 	else:
-		# If qualify is True then the sub is on the return path. 
 		# So once complete, reset the controllers to end run.
-		if self.qualify == True:
+		# This message takes a few iterations to get through
+		timer=time()
+		while time()-timer<1.0:
 			self.reset_controllers()
 		self.reset_variables()	
 		return 'complete'
