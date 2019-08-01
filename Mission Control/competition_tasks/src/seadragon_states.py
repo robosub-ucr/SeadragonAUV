@@ -68,6 +68,43 @@ class Reset(smach.State):
 		return 'done'
 
 
+class YawStateIsSetpoint(smach.State):
+	def __init__(self):
+		smach.State.__init__(self, outcomes='done', 'notdone', 'reset')
+
+		self.yaw = 0
+		self.yaw_received = False
+		self.yaw_publisher = rospy.Publisher('yaw_control/setpoint', Float64, queue_size=10)
+
+		rospy.Subscriber('/yaw_control/state', Float64, self.yaw_callback)
+		rospy.Subscriber('/reset', Bool, self.reset_callback)
+
+	def reset_callback(self, msg):
+		self.reset = msg.data
+
+	def yaw_callback(self, msg):
+		self.yaw = msg.data
+		self.yaw_received = True
+
+	def execute(self, userdata):
+		if self.reset:
+			self.reset_values()
+			return 'reset'
+
+		if self.yaw_received:
+			new_yaw = Float64()
+			new_yaw.data = self.yaw
+			self.yaw_publisher.publish(new_yaw)
+			self.reset_values()
+			return 'done'
+		else:
+			return 'notdone'
+
+	def reset_values(self):
+		self.yaw_received = False
+
+
+
 class WaitForTopic(smach.State):
 	def __init__(self, topic):
 		smach.State.__init__(self, outcomes=['done', 'notdone'])
@@ -106,6 +143,49 @@ class PublishTopic(smach.State):
 		flag.data = self.value
 		self.topic_publisher.publish(flag)
 		return 'done'
+
+class PublishTopicRelative(smach.State):
+	# This state publishes a value to a topic. The value is relative to the given one.
+
+	def __init__(self, topic_state, datatype, topic_setpoint, offset):
+		smach.State.__init__(self, outcomes=['done', 'notdone', 'reset'])
+		
+		self.topic_received = False
+		self.reset = False
+		self.offset = offset
+		self.datatype = datatype
+		self.topic_publisher = rospy.Publisher(topic_setpoint, datatype, queue_size=10)
+		rospy.Subscriber(topic_state, datatype, self.state_callback)
+		rospy.Subscriber('/reset', Bool, self.reset_callback)
+		
+
+	def reset_callback(self, msg):
+		self.reset = msg.data
+
+	def state_callback(self, msg):
+		self.topic = msg.data
+		self.topic_received = True
+
+	def execute(self, userdata):
+		if self.reset:
+			self.reset_values()
+			return 'reset'
+
+		if self.topic_received:
+			if self.datatype == Int16:
+				new_value = Int16() + self.offset
+			else:
+				new_value = Float64()
+			new_value.data = self.topic + self.offset
+			self.topic_publisher.publish(new_value)
+			self.reset_values()
+			return 'done'
+		else:
+			return 'notdone'
+
+	def reset_values(self):
+		self.topic_received = False
+		self.reset = False
 
 
 class WaitTimed(smach.State):

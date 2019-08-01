@@ -77,10 +77,12 @@ def main():
 			transitions={'done':'YAW_PID_ENABLE', 'notdone':'DIVE_GATE_DEPTH', 'reset':'RESET'})
 
 		smach.StateMachine.add('YAW_PID_ENABLE', state.PublishTopic('/yaw_control/pid_enable', True), 
-			transitions={'done':'ROTATE_TO_GATE'}),
+			transitions={'done':'ROTATE_TO_GATE'})
 
 		smach.StateMachine.add('ROTATE_TO_GATE', state.RotateYawToAbsoluteTarget(1.57), 
 			transitions={'done':'TRACK_GATE', 'notdone':'ROTATE_TO_GATE', 'reset':'RESET'})	
+
+
 		smach.StateMachine.add('TRACK_GATE', state.TrackObject(gate_topic), 
 			transitions ={'done':'ROTATE_GATE_LEFT', 'notdone':'TRACK_GATE', 'reset':'RESET'})
 		smach.StateMachine.add('ROTATE_GATE_LEFT', state.RotateYawToRelativeTarget(-0.017*5), 
