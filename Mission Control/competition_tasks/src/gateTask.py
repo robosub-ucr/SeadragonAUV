@@ -75,18 +75,21 @@ def main():
 			transitions={'done':'DIVE_GATE_DEPTH'})
 		smach.StateMachine.add('DIVE_GATE_DEPTH', state.ChangeDepthToTarget(18), 
 			transitions={'done':'YAW_PID_ENABLE', 'notdone':'DIVE_GATE_DEPTH', 'reset':'RESET'})
-
 		smach.StateMachine.add('YAW_PID_ENABLE', state.PublishTopic('/yaw_control/pid_enable', True), 
 			transitions={'done':'ROTATE_TO_GATE'})
-
 		smach.StateMachine.add('ROTATE_TO_GATE', state.RotateYawToAbsoluteTarget(1.57), 
 			transitions={'done':'TRACK_GATE', 'notdone':'ROTATE_TO_GATE', 'reset':'RESET'})	
-
-
 		smach.StateMachine.add('TRACK_GATE', state.TrackObject(gate_topic), 
-			transitions ={'done':'ROTATE_GATE_LEFT', 'notdone':'TRACK_GATE', 'reset':'RESET'})
-		smach.StateMachine.add('ROTATE_GATE_LEFT', state.RotateYawToRelativeTarget(-0.017*5), 
+			transitions ={'done':'SET_YAW_GATE_OFFSET', 'notdone':'TRACK_GATE', 'reset':'RESET'})
+
+
+		smach.StateMachine.add('SET_YAW_GATE_OFFSET', state.PublishTopicRelative('/yaw_control/state', '/yaw_control/setpoint', Float64, -0.017*5),
+			transitions = {'done':'ROTATE_GATE_LEFT', 'notdone':'SET_YAW_GATE_OFFSET', 'reset':'RESET'})
+
+		smach.StateMachine.add('ROTATE_GATE_LEFT', state.WaitForConvergence('/yaw_control/state', Float64, -0.017*5, 0.017, 5000), 
 			transitions ={'done':'MOVE_FORWARD_GATE', 'notdone':'ROTATE_GATE_LEFT', 'reset':'RESET'})
+		
+
 		smach.StateMachine.add('MOVE_FORWARD_GATE', state.MoveForwardTimed(10000, True), 
 			transitions ={'done':'BUOY_DEPTH','notdone':'MOVE_FORWARD_GATE', 'reset':'RESET'})
 		smach.StateMachine.add('BUOY_DEPTH', state.ChangeDepthToTarget(5*12), 

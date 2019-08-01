@@ -147,7 +147,7 @@ class PublishTopic(smach.State):
 class PublishTopicRelative(smach.State):
 	# This state publishes a value to a topic. The value is relative to the given one.
 
-	def __init__(self, topic_state, datatype, topic_setpoint, offset):
+	def __init__(self, topic_state, topic_setpoint, datatype, offset):
 		smach.State.__init__(self, outcomes=['done', 'notdone', 'reset'])
 		
 		self.topic_received = False
