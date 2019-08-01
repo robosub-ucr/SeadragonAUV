@@ -360,11 +360,11 @@ def main():
 		'area': '/buoy_triangle_area'
 	}
 
-	TOUCH_FLAT_TIMER 	= 1000 # time required (in ticks) to touch the flat buoy
+	TOUCH_FLAT_TIMER 	= 5000 # time required (in ticks) to touch the flat buoy
 	MOVE_BACK_1_TIMER 	= 700  # time required (in ticks) to move back, away from flat buoy
-	MOVE_FORWARD_TIMER 	= 2000 # time required (in ticks) to move past the flat buoy
-	TOUCH_TRIANGLE_TIMER 	= 1000 # time required (in ticks) to touch the triangle buoy
-	MOVE_BACK_2_TIMER 	= 1400 # time required (in ticks) to move back, away from triangle buoy
+	MOVE_FORWARD_TIMER 	= 3000 # time required (in ticks) to move past the flat buoy
+	TOUCH_TRIANGLE_TIMER 	= 3000 # time required (in ticks) to touch the triangle buoy
+	MOVE_BACK_2_TIMER 	= 3000 # time required (in ticks) to move back, away from triangle buoy
 
 	BUOY_ABOVE_DEPTH 	= -36  # Adjusts sub to move 3 ft up
 	BUOY_BELOW_DEPTH 	= 36   # Adjusts sub to move 3 ft down
@@ -388,13 +388,13 @@ def main():
 		smach.StateMachine.add('MOVE_BACK_1', MoveForwardState(MOVE_BACK_1_TIMER, False), 
 			transitions={'done':'MOVE_UP', 'notdone':'MOVE_BACK_1', 'reset':'RESET'})
 
-		smach.StateMachine.add('MOVE_UP', ChangeDepthState(BUOY_ABOVE_DEPTH, DEPTH_VARIANCE), 
+		smach.StateMachine.add('MOVE_UP', sd.ChangeDepthToTarget(BUOY_ABOVE_DEPTH), 
 			transitions={'done':'MOVE_FORWARD', 'notdone':'MOVE_UP', 'reset':'RESET'})
 
 		smach.StateMachine.add('MOVE_FORWARD', MoveForwardState(MOVE_FORWARD_TIMER, True), 
 			transitions={'done':'MOVE_DOWN', 'notdone':'MOVE_FORWARD', 'reset':'RESET'})
 
-		smach.StateMachine.add('MOVE_DOWN', ChangeDepthState(BUOY_BELOW_DEPTH, DEPTH_VARIANCE), 
+		smach.StateMachine.add('MOVE_DOWN', sd.ChangeDepthToTarget(BUOY_BELOW_DEPTH), 
 			transitions={'done':'TURN_AROUND', 'notdone':'MOVE_DOWN', 'reset':'RESET'})
 
 		smach.StateMachine.add('TURN_AROUND', RotateYawState(YAW_BUOY_BACK, YAW_VARIANCE), 
