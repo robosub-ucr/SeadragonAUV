@@ -6,6 +6,8 @@ import smach
 import smach_ros
 from std_msgs.msg import Bool, Float64, Int16
 
+import seadragon_states as sd
+
 CAMERA_WIDTH = 400
 CAMERA_HEIGHT = 300
 CENTER_PADDING_X = 15
@@ -377,7 +379,7 @@ def main():
 		smach.StateMachine.add('IDLE', StartState(), 
 			transitions={'ready':'TRACK_FLAT', 'notready':'IDLE'})
 
-		smach.StateMachine.add('TRACK_FLAT', TrackObjectState(buoy_flat_topic, 0), 
+		smach.StateMachine.add('TRACK_FLAT', sd.TrackObject(buoy_flat_topic), 
 			transitions={'done':'TOUCH_FLAT', 'notdone':'TRACK_FLAT', 'reset':'RESET'})
 
 		smach.StateMachine.add('TOUCH_FLAT', MoveForwardState(TOUCH_FLAT_TIMER, True), 
