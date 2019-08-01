@@ -665,7 +665,7 @@ class TrackObject(smach.State):
 		self.has_reset = msg.data
 
 	def execute(self, userdata):
-		print("timer", self.timer, "x", self.object_x, "y", self.object_y, "area", self.object_area)
+
 		self.timer = self.timer + 1
 		if self.has_reset:
 			self.resetValues()
@@ -677,6 +677,8 @@ class TrackObject(smach.State):
 
 		if is_object_x_centered and is_object_y_centered:
 			is_object_area_in_threshold = self.adjust_position() 
+
+		print("timer", self.timer, "x", self.object_x, "y", self.object_y, "area", self.object_area, "x", is_object_x_centered, "y", is_object_y_centered, "area", is_object_area_in_threshold)
 
 		# go to next state if the object is at the center of the camera frame and within certain distace of the submarine
 		if is_object_x_centered and is_object_y_centered and is_object_area_in_threshold:
