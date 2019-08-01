@@ -70,7 +70,7 @@ class Reset(smach.State):
 
 class YawStateIsSetpoint(smach.State):
 	def __init__(self):
-		smach.State.__init__(self, outcomes='done', 'notdone', 'reset')
+		smach.State.__init__(self, outcomes=['done', 'notdone', 'reset'])
 
 		self.yaw = 0
 		self.yaw_received = False
