@@ -254,6 +254,7 @@ class WaitForConvergence(smach.State):
 		self.data_received = True
 
 	def execute(self, userdata):
+		print('timer', self.timer, 'state', self.topic_data, 'target', self.target)
 		if self.reset:
 			return 'reset'
 
