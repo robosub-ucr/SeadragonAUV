@@ -665,6 +665,7 @@ class TrackObject(smach.State):
 		self.has_reset = msg.data
 
 	def execute(self, userdata):
+		print("timer", self.timer, "x", self.object_x, "y", self.object_y, "area", self.object_area)
 		self.timer = self.timer + 1
 		if self.has_reset:
 			self.resetValues()
