@@ -377,10 +377,11 @@ def main():
 
 	with sm:
 		smach.StateMachine.add('IDLE', StartState(), 
-			transitions={'ready':'TRACK_FLAT', 'notready':'IDLE'})
+			transitions={'ready':'TOUCH_FLAT', 'notready':'IDLE'})
+			#transitions={'ready':'TRACK_FLAT', 'notready':'IDLE'})
 
-		smach.StateMachine.add('TRACK_FLAT', sd.TrackObject(buoy_flat_topic), 
-			transitions={'done':'TOUCH_FLAT', 'notdone':'TRACK_FLAT', 'reset':'RESET'})
+		#smach.StateMachine.add('TRACK_FLAT', sd.TrackObject(buoy_flat_topic), 
+		#	transitions={'done':'TOUCH_FLAT', 'notdone':'TRACK_FLAT', 'reset':'RESET'})
 
 		smach.StateMachine.add('TOUCH_FLAT', MoveForwardState(TOUCH_FLAT_TIMER, True), 
 			transitions={'done':'MOVE_BACK_1', 'notdone':'TOUCH_FLAT', 'reset':'RESET'})
@@ -398,10 +399,11 @@ def main():
 			transitions={'done':'TURN_AROUND', 'notdone':'MOVE_DOWN', 'reset':'RESET'})
 
 		smach.StateMachine.add('TURN_AROUND', RotateYawState(YAW_BUOY_BACK, YAW_VARIANCE), 
-			transitions={'done':'TRACK_TRIANGLE', 'notdone':'TURN_AROUND', 'reset':'RESET'})
+			transitions={'done':'TOUCH_TRIANGLE', 'notdone':'TURN_AROUND', 'reset':'RESET'})
+		#	transitions={'done':'TRACK_TRIANGLE', 'notdone':'TURN_AROUND', 'reset':'RESET'})
 
-		smach.StateMachine.add('TRACK_TRIANGLE', TrackObjectState(buoy_triangle_topic, 0), 
-			transitions={'done':'TOUCH_TRIANGLE', 'notdone':'TRACK_TRIANGLE', 'reset':'RESET'})
+		#smach.StateMachine.add('TRACK_TRIANGLE', TrackObjectState(buoy_triangle_topic, 0), 
+		#	transitions={'done':'TOUCH_TRIANGLE', 'notdone':'TRACK_TRIANGLE', 'reset':'RESET'})
 
 		smach.StateMachine.add('TOUCH_TRIANGLE', MoveForwardState(TOUCH_TRIANGLE_TIMER, True), 
 			transitions={'done':'MOVE_BACK_2', 'notdone':'TOUCH_TRIANGLE', 'reset':'RESET'})
