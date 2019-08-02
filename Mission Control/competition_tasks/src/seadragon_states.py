@@ -109,6 +109,7 @@ class Rotate180(smach.State):
 
 		self.timer = 0
 		self.target = target
+		self.yaw = 0
 		self.yaw_received = False
 		self.yaw_setpoint = 0
 		self.reset = False
