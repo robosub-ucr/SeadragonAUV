@@ -134,6 +134,7 @@ class Rotate180(smach.State):
 			self.reset_values()
 			return 'reset'
 
+		print("state", self.yaw, "setpoint", self.yaw_setpoint)
 		self.timer += 1
 		if self.yaw_received and self.timer % 2000 == 0:
 			yaw_diff = Float64()
