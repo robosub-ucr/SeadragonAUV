@@ -113,7 +113,7 @@ class Rotate180(smach.State):
 		self.yaw_setpoint = 0
 		self.yaw_publisher = rospy.Publisher('/yaw_control/setpoint', Float64, queue_size=10)
 
-		rospy.Subscriber('/yaw_control/state', Float64, self.yaw_state_callback)
+		rospy.Subscriber('/yaw_control/state', Float64, self.yaw_callback)
 		rospy.Subscriber('/reset', Bool, self.reset_callback)
 		
 	def reset_callback(self, msg):
