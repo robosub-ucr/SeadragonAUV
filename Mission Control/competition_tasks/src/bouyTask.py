@@ -405,7 +405,7 @@ def main():
 		smach.StateMachine.add('MOVE_DOWN', sd.ChangeDepthToTarget(BUOY_BELOW_DEPTH), 
 			transitions={'done':'TURN_AROUND', 'notdone':'MOVE_DOWN', 'reset':'RESET'})
 
-		smach.StateMachine.add('TURN_AROUND', sd.Rotate180(YAW_BUOY_BACK, YAW_VARIANCE), 
+		smach.StateMachine.add('TURN_AROUND', sd.Rotate180(YAW_BUOY_BACK), 
 			transitions={'done':'TOUCH_TRIANGLE', 'notdone':'TURN_AROUND', 'reset':'RESET'})
 		#	transitions={'done':'TRACK_TRIANGLE', 'notdone':'TURN_AROUND', 'reset':'RESET'})
 
