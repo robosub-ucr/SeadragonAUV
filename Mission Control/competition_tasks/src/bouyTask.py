@@ -14,11 +14,11 @@ CENTER_PADDING_X = 15
 CENTER_PADDING_Y = 15
 YAW_INCREASE = 0.017 # radians
 DEPTH_STEP = 1
-FORWARD_THRUST_INCREASE = 1
+FORWARD_THRUST_INCREASE = 60
 AREA_THRESHOLD_LOW = 0.15
 AREA_THRESHOLD_HIGH = 0.2
 TORPEDO_Y_OFFSET = 10
-MAX_FORWARD_THRUST= 280
+MAX_FORWARD_THRUST= 120
 
 class StartState(smach.State):
 	def __init__(self):
@@ -360,15 +360,15 @@ def main():
 		'area': '/buoy_triangle_area'
 	}
 
-	TOUCH_FLAT_TIMER 	= 5000 # time required (in ticks) to touch the flat buoy
-	MOVE_BACK_1_TIMER 	= 700  # time required (in ticks) to move back, away from flat buoy
-	MOVE_FORWARD_TIMER 	= 3000 # time required (in ticks) to move past the flat buoy
-	TOUCH_TRIANGLE_TIMER 	= 3000 # time required (in ticks) to touch the triangle buoy
-	MOVE_BACK_2_TIMER 	= 3000 # time required (in ticks) to move back, away from triangle buoy
+	TOUCH_FLAT_TIMER 	= 10000 # time required (in ticks) to touch the flat buoy
+	MOVE_BACK_1_TIMER 	= 6000  # time required (in ticks) to move back, away from flat buoy
+	MOVE_FORWARD_TIMER 	= 10000 # time required (in ticks) to move past the flat buoy
+	TOUCH_TRIANGLE_TIMER = 10000 # time required (in ticks) to touch the triangle buoy
+	MOVE_BACK_2_TIMER 	= 6000 # time required (in ticks) to move back, away from triangle buoy
 
-	BUOY_ABOVE_DEPTH 	= -36  # Adjusts sub to move 3 ft up
-	BUOY_BELOW_DEPTH 	= 36   # Adjusts sub to move 3 ft down
-	TORPEDO_BOARD_DEPTH 	= 36   # Adjusts sub to move 3 ft down
+	BUOY_ABOVE_DEPTH 	= 2*12  # Adjusts sub to move 2 ft up
+	BUOY_BELOW_DEPTH 	= 3.5*12   # Adjusts sub to move 3.5 ft down
+	TORPEDO_BOARD_DEPTH = 3*12   # Adjusts sub to move 3 ft down
 	DEPTH_VARIANCE 		= 2    # 2 inch
 
 	YAW_BUOY_BACK 		= 3.14 # the yaw (in radians) to make sub turn 180 degrees to face back buoys
