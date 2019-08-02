@@ -105,7 +105,7 @@ class YawStateIsSetpoint(smach.State):
 
 class Rotate180(smach.State):
 	def __init__(self, target):
-		smach.State.__init__(self, outcomes=['done','notdone'])
+		smach.State.__init__(self, outcomes=['done','notdone', 'reset'])
 
 		self.timer = 0
 		self.target = target
