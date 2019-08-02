@@ -7,6 +7,7 @@ import smach_ros
 from std_msgs.msg import Bool, Float64, Int16
 
 import seadragon_states as sd
+import time
 
 CAMERA_WIDTH = 400
 CAMERA_HEIGHT = 300
@@ -201,6 +202,7 @@ class ChangeDepthState(smach.State):
 		self.target_depth  = 0
 
 	def execute(self, userdata):
+		print("depth_state", self.depth_current, "depth_setpoint", self.depthAdjust)
 		if self.has_reset:
 			self.reset_variables()
 			return 'reset'
@@ -209,7 +211,7 @@ class ChangeDepthState(smach.State):
 			self.target_depth = self.depth_current + self.depthAdjust	# target_depth only for transition calculation	
 			self.new_depth_target.data = self.target_depth			# ROS MSG container
 			self.depth_publisher.publish(self.new_depth_target_data)	
-			self.target_set == True
+			self.target_set = True
 		
 		# Sub stays in change depth state until it reaches its target depth or while it hasn't set a new depth target
 		if (abs(self.depth_current - self.target_depth) > self.threshold) or (self.target_set == False):
@@ -227,6 +229,7 @@ class RotateYawState(smach.State):
 		self.yaw_change = yaw_change
 		self.yaw_variance = variance
 		self.yaw_target = Float64()
+		self.timer = 0
 
 		self.yaw_current = 0 # in degrees, None if the callback hasnt triggered yet
 		rospy.Subscriber('/yaw_control/state', Float64, self.yaw_callback) # current orientation
@@ -241,10 +244,12 @@ class RotateYawState(smach.State):
 		self.has_reset = msg.data
 
 	def execute(self, userdata):
+		print("yaw_state", self.yaw_current, "yaw_setpoint", self.yaw_current + self.yaw_change)
 		if self.has_reset:
 			self.resetValues()
 			return 'reset'
 
+		self.timer += 1
 		if not self.yaw_published:
 			self.yaw_target.data = self.yaw_current + self.yaw_change
 			self.yaw_publisher.publish(self.yaw_target)
@@ -259,6 +264,7 @@ class RotateYawState(smach.State):
 		self.yaw_current = 0
 		self.has_reset = False
 		self.yaw_published = False
+		self.timer = 0
 
 
 class MoveForwardState(smach.State):
@@ -280,6 +286,7 @@ class MoveForwardState(smach.State):
 		self.has_reset = msg.data
 
 	def execute(self, userdata):
+		print("timer (%)", self.timer/self.duration, "forward?", self.isForward)
 		if self.has_reset:
 			self.resetValues()
 			return 'reset'
@@ -398,7 +405,7 @@ def main():
 		smach.StateMachine.add('MOVE_DOWN', sd.ChangeDepthToTarget(BUOY_BELOW_DEPTH), 
 			transitions={'done':'TURN_AROUND', 'notdone':'MOVE_DOWN', 'reset':'RESET'})
 
-		smach.StateMachine.add('TURN_AROUND', RotateYawState(YAW_BUOY_BACK, YAW_VARIANCE), 
+		smach.StateMachine.add('TURN_AROUND', sd.Rotate180(YAW_BUOY_BACK, YAW_VARIANCE), 
 			transitions={'done':'TOUCH_TRIANGLE', 'notdone':'TURN_AROUND', 'reset':'RESET'})
 		#	transitions={'done':'TRACK_TRIANGLE', 'notdone':'TURN_AROUND', 'reset':'RESET'})
 

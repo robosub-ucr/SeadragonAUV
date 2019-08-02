@@ -103,6 +103,57 @@ class YawStateIsSetpoint(smach.State):
 	def reset_values(self):
 		self.yaw_received = False
 
+class Rotate180(smach.State):
+	def __init__(self, target):
+		smach.State.__init__(self, outcomes=['done','notdone'])
+
+		self.timer = 0
+		self.target = target
+		self.yaw_received = False
+		self.yaw_setpoint = 0
+		self.yaw_publisher = rospy.Publisher('/yaw_control/setpoint', Float64, queue_size=10)
+
+		rospy.Subscriber('/yaw_control/state', Float64, self.yaw_state_callback)
+		rospy.Subscriber('/reset', Bool, self.reset_callback)
+		
+	def reset_callback(self, msg):
+		self.reset = msg.data
+
+	def yaw_callback(self, msg):
+		self.yaw = msg.data
+		if not self.yaw_received:
+			if self.yaw > 0:
+				self.yaw_setpoint = self.yaw - 3.14
+			else:
+				self.yaw_setpoint = self.yaw + 3.14
+		self.yaw_received = True
+
+	def execute(self, userdata):
+		if self.reset:
+			self.reset_values()
+			return 'reset'
+
+		self.timer += 1
+		if self.yaw_received and self.timer % 2000 == 0:
+			yaw_diff = Float64()
+			yaw_diff.data = -1 * (self.yaw - self.yaw_setpoint)
+			if abs(yaw_diff.data) < 0.017 * 2:
+				self.reset_values()
+				return 'done'
+
+			if yaw_diff.data > 0.785:
+				yaw_diff.data = 0.785
+				self.yaw_publisher.publish(yaw_diff)
+			elif yaw_diff.data < -0.785:
+				yaw_diff.data = -0.785
+				self.yaw_publisher.publish(yaw_diff)
+		return 'notdone'
+
+
+	def reset_values(self):
+		self.timer = 0
+		self.yaw_received = False
+
 
 
 class WaitForTopic(smach.State):
