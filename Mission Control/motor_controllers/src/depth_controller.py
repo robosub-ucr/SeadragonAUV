@@ -29,8 +29,8 @@ def depth_callback(depth_msg):
 
 def reset_callback(reset_msg):
         enabled = reset_msg.data
-        if enabled == False:
-                depthpwm.data = 0
+        if enabled == False:				    # Sends reset pwm (0) to the robot if the pid_enable signal 
+                depthpwm.data = 0			    # was published as false
                 set_depthpwm.publish(depthpwm)
 
 reset_subscriber = rospy.Subscriber('/depth_control/pid_enable',Bool,reset_callback)
