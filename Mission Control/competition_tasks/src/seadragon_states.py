@@ -617,7 +617,7 @@ class MoveForwardTimed(smach.State):
 		self.duration = duration
 		self.is_forward = is_forward
 
-		self.forward_thrust_publisher = rospy.Publisher('/yaw_pwn', Int16, queue_size=10)
+		self.forward_thrust_publisher = rospy.Publisher('/yaw_pwm', Int16, queue_size=10)
 		self.forward_thrust = Int16() # Keeps track of forward thrust. Required because there's no topic to subcribe to for forward thrust
 
 		self.reset = False
@@ -636,6 +636,7 @@ class MoveForwardTimed(smach.State):
 		self.ticks += 1
 		if self.ticks >= self.duration:
 			self.reset_values()
+			self.forward_thrust_publisher.publish(self.forward_thrust)
 			return 'done'
 
 		# Else, increase or decrease forward thrust every 200 ticks

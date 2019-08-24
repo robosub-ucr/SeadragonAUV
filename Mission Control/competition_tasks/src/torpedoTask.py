@@ -31,7 +31,9 @@ def main():
 
 	with sm:
 		smach.StateMachine.add('IDLE', state.WaitForTopic('/torpedo_enable'), 
-			transitions={'done':'TRACK_BOARD', 'notdone':'IDLE'})
+			transitions={'done':'YAW_PID_ENABLE', 'notdone':'IDLE'})
+		smach.StateMachine.add('YAW_PID_ENABLE', state.PublishTopic('/yaw_control/pid_enable', True), 
+			transitions={'done':'TRACK_BOARD'})
 		smach.StateMachine.add('TRACK_BOARD', state.TrackObject(board_topic, 0,0), 
 			transitions={'done':'TRACK_HEART', 'notdone':'TRACK_BOARD', 'reset':'RESET'})
 		smach.StateMachine.add('TRACK_HEART', state.TrackObject(heart_topic, 0, TORPEDO_Y_OFFSET), 
