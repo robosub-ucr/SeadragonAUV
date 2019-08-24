@@ -428,7 +428,7 @@ def main():
 			transitions={'done':'IDLE'})
 
 		smach.StateMachine.add('RESET', sd.Reset(), 
-			transitions={'done':'IDLE', 'notdone':'RESET'})
+			transitions={'done':'IDLE'})
 
 	outcome = sm.execute()
 	rospy.spin()
