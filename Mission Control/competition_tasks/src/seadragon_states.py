@@ -356,6 +356,7 @@ class ChangeDepthToTarget(smach.State):
 		self.reset = msg.data
 
 	def execute(self, userdata):
+		print ("depth_received", self.depth_received,"depth_published", self.depth_published,"depth_variance", abs(self.depth - self.depth_target.data), "depth", self.depth)
 		if self.reset:
 			self.reset_values()
 			return 'reset'
