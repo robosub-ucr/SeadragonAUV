@@ -390,16 +390,16 @@ def main():
 		#smach.StateMachine.add('TRACK_FLAT', sd.TrackObject(buoy_flat_topic), 
 		#	transitions={'done':'TOUCH_FLAT', 'notdone':'TRACK_FLAT', 'reset':'RESET'})
 
-		smach.StateMachine.add('TOUCH_FLAT', MoveForwardState(TOUCH_FLAT_TIMER, True), 
+		smach.StateMachine.add('TOUCH_FLAT', sd.MoveForwardTimed(TOUCH_FLAT_TIMER, True), 
 			transitions={'done':'MOVE_BACK_1', 'notdone':'TOUCH_FLAT', 'reset':'RESET'})
 
-		smach.StateMachine.add('MOVE_BACK_1', MoveForwardState(MOVE_BACK_1_TIMER, False), 
+		smach.StateMachine.add('MOVE_BACK_1', sd.MoveForwardTimed(MOVE_BACK_1_TIMER, False), 
 			transitions={'done':'MOVE_UP', 'notdone':'MOVE_BACK_1', 'reset':'RESET'})
 
 		smach.StateMachine.add('MOVE_UP', sd.ChangeDepthToTarget(BUOY_ABOVE_DEPTH), 
 			transitions={'done':'MOVE_FORWARD', 'notdone':'MOVE_UP', 'reset':'RESET'})
 
-		smach.StateMachine.add('MOVE_FORWARD', MoveForwardState(MOVE_FORWARD_TIMER, True), 
+		smach.StateMachine.add('MOVE_FORWARD', sd.MoveForwardTimed(MOVE_FORWARD_TIMER, True), 
 			transitions={'done':'MOVE_DOWN', 'notdone':'MOVE_FORWARD', 'reset':'RESET'})
 
 		smach.StateMachine.add('MOVE_DOWN', sd.ChangeDepthToTarget(BUOY_BELOW_DEPTH), 
@@ -412,23 +412,23 @@ def main():
 		#smach.StateMachine.add('TRACK_TRIANGLE', TrackObjectState(buoy_triangle_topic, 0), 
 		#	transitions={'done':'TOUCH_TRIANGLE', 'notdone':'TRACK_TRIANGLE', 'reset':'RESET'})
 
-		smach.StateMachine.add('TOUCH_TRIANGLE', MoveForwardState(TOUCH_TRIANGLE_TIMER, True), 
+		smach.StateMachine.add('TOUCH_TRIANGLE', sd.MoveForwardTimed(TOUCH_TRIANGLE_TIMER, True), 
 			transitions={'done':'MOVE_BACK_2', 'notdone':'TOUCH_TRIANGLE', 'reset':'RESET'})
 
-		smach.StateMachine.add('MOVE_BACK_2', MoveForwardState(MOVE_BACK_2_TIMER, False), 
+		smach.StateMachine.add('MOVE_BACK_2', sd.MoveForwardTimed(MOVE_BACK_2_TIMER, False), 
 			transitions={'done':'FACE_TORPEDO_TASK', 'notdone':'MOVE_BACK_2', 'reset':'RESET'})
 
 		smach.StateMachine.add('FACE_TORPEDO_TASK', RotateYawState(YAW_TORPEDO_TASK, YAW_VARIANCE), 
 			transitions={'done':'MOVE_TORPEDO_DEPTH', 'notdone':'FACE_TORPEDO_TASK', 'reset':'RESET'})
 
-		smach.StateMachine.add('MOVE_TORPEDO_DEPTH', ChangeDepthState(TORPEDO_BOARD_DEPTH, DEPTH_VARIANCE), 
+		smach.StateMachine.add('MOVE_TORPEDO_DEPTH', sd.ChangeDepthToTarget(TORPEDO_BOARD_DEPTH), 
 			transitions={'done':'COMPLETED', 'notdone':'MOVE_TORPEDO_DEPTH', 'reset':'RESET'})
 
-		smach.StateMachine.add('COMPLETED', CompletedState('/buoy_task_complete'),
+		smach.StateMachine.add('COMPLETED', sd.PublishTopic('/buoy_task_complete', True),
 			transitions={'done':'IDLE'})
 
-		smach.StateMachine.add('RESET', ResetState(), 
-			transitions={'done':'IDLE', 'notdone':'RESET'})
+		smach.StateMachine.add('RESET', sd.Reset(), 
+			transitions={'done':'IDLE'})
 
 	outcome = sm.execute()
 	rospy.spin()
