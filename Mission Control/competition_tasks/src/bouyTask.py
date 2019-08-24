@@ -390,7 +390,7 @@ def main():
 		#smach.StateMachine.add('TRACK_FLAT', sd.TrackObject(buoy_flat_topic), 
 		#	transitions={'done':'TOUCH_FLAT', 'notdone':'TRACK_FLAT', 'reset':'RESET'})
 
-		smach.StateMachine.add('TOUCH_FLAT', MoveForwardState(TOUCH_FLAT_TIMER, True), 
+		smach.StateMachine.add('TOUCH_FLAT', sd.MoveForwardTimed(TOUCH_FLAT_TIMER, True), 
 			transitions={'done':'MOVE_BACK_1', 'notdone':'TOUCH_FLAT', 'reset':'RESET'})
 
 		smach.StateMachine.add('MOVE_BACK_1', MoveForwardState(MOVE_BACK_1_TIMER, False), 
