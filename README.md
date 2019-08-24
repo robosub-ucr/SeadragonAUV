@@ -63,4 +63,3 @@ rosrun rosserial_python serial_node.py /dev/ttyACM0
 ```
 Note: if ACM0 doesnt work (an error occurs), try ACM1 or type `ls /dev/ttyACM` and tab to see which file # exists.
 
-Manveer Was Here
