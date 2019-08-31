@@ -54,7 +54,7 @@ class JoyNode:
             yaw += 2 * 3.14
         return yaw
 
-    def execute():
+    def execute(self):
         buttonIncreaseDepth = self.buttons[0] # Button A
         buttonDecreaseDepth = self.buttons[1] # Button Y
         buttonRotateCounterClockwise = self.buttons[2] # Button X
