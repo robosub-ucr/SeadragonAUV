@@ -54,7 +54,7 @@ class JoyNode:
             yaw += 2 * 3.14
         return yaw
 
-    def execute():
+    def execute(self):
         buttonIncreaseDepth = self.buttons[0] # Button A
         buttonDecreaseDepth = self.buttons[1] # Button Y
         buttonRotateCounterClockwise = self.buttons[2] # Button X
@@ -183,9 +183,9 @@ class JoyNode:
         "invoked every time a joystick message arrives"
         global DEGREE_1, DEGREE_45, DEGREE_90
         
-        for i in range(11):
+        for i in range(len(self.buttons)):
             self.buttons[i] = joy.buttons[i]
-        for i in range(7):
+        for i in range(len(self.axes)):
             self.axes[i] = joy.axes[i]
 
         # Joystick Input: Cross Key Up/Down
