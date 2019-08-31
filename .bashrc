@@ -120,7 +120,10 @@ export LD_LIBRARY_PATH=/usr/local/cuda-10.0/lib64:$LD_LIBRARY_PATH
 source /opt/ros/melodic/setup.bash
 
 
-######## SEADRAGON ALIASES ########
+######## SEADRAGON ########
+
+echo "THIS IS SEADRAGON LIVE!"
+
 source ~/catkin_ws/devel/setup.bash
 export ROS_HOSTNAME=seadragon
 
