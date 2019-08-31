@@ -64,15 +64,18 @@ class JoyNode:
         axisForward = self.axes[7] # Axis Cross Key Up/Down
 
         if buttonIncreaseDepth: # Button A -- Increase depth setpoint
+            print("Button A pressed")
             if self.depth_state != None:
                 new_depth = self.depth_state + 1
                 depthObj = Int16()
                 depthObj.data = new_depth
                 print("Button A -- new depth: {}".format(new_depth))
                 self.depthSetpointPublisher.publish(depthObj)
-
+            else:
+                print("Button A -- yaw state was not published")
 
         if buttonRotateClockwise: # Button B -- Rotate clockwise
+            print("Button B pressed")
             # Increase setpoint clockwise
             if self.yaw_setpoint != None:
                 new_yaw = self.yaw_setpoint + DEGREE_1
@@ -80,6 +83,8 @@ class JoyNode:
                 yawObj = Float64()
                 yawObj.data = new_yaw
                 self.yawSetpointPublisher.publish(yawObj)
+            else:
+                print("Button A -- yaw state was not published")
         # else:
         #     # Stop rotating by setting the setpoint to current rotation
         #     if self.yaw_state != None:
@@ -89,6 +94,7 @@ class JoyNode:
 
 
         if buttonRotateCounterClockwise: # Button X -- Rotate counter-clockwise
+            print("Button X pressed")
             # Increase setpoint counter-clockwise
             if self.yaw_setpoint != None:
                 new_yaw = self.yaw_setpoint - DEGREE_1 
@@ -106,6 +112,7 @@ class JoyNode:
 
 
         if buttonDecreaseDepth: # Button Y -- Decrease depth setpoint
+            print("Button Y pressed")
             if self.depth_state != None:
                 new_depth = self.depth_state - 1
                 depthObj = Int16()
