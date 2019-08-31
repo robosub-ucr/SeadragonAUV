@@ -16,7 +16,6 @@ class JoyNode:
         "JoyNode Constructor"
         rospy.Subscriber('joy', Joy, self.joyCallBack)
 
-
         self.yaw_state = None
         self.depth_state = None
         self.yaw_setpoint = None
@@ -227,22 +226,10 @@ atexit.register(kill_motors)
 def main():
     rospy.init_node('joystickController');
     joyObject = JoyNode()
+
     print("Python Project Running....")
- #   rospy.Subscriber('joy', Joy, buttonACallback)
-    rospy.Subscriber('joy', Joy, joyObject.joyCallBack)
-
-    #forwardPublisher = rospy.Publisher('/yaw_pwm', Int16, queue_size= 10 )    
-    forwardObj = Int16()
-
     while not rospy.is_shutdown():
        joyObject.execute()
-       # errors 
-       # if buttonA == 0:
-       #     forwardObj.data = 0
-       # else:
-       #     forwardObj.data = -10
-        #yaw_pwm_publisher = rospy.Publisher('/yaw_pwm', Int16, queue_size=10)
-        #publisher.publish(forwardObj)
-        pass   
+
 if __name__ == '__main__':
     main()
