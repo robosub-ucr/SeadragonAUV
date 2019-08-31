@@ -188,6 +188,8 @@ class JoyNode:
         for i in range(len(self.axes)):
             self.axes[i] = joy.axes[i]
 
+        # 
+
         # Joystick Input: Cross Key Up/Down
         # sub moving fwd/bckwrd 
 
