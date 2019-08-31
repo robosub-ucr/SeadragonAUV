@@ -32,8 +32,8 @@ class JoyNode:
         self.depthPidPublisher = rospy.Publisher('/depth_control/pid_enable', Bool, queue_size=10)
         self.yawPidPublisher = rospy.Publisher('yaw_control/pid_enable', Bool, queue_size=10)
 
-        self.buttons =  [False for i in range(12)]
-        self.axes = [0 for i in range(6)]
+        self.buttons =  [False for i in range(11)]
+        self.axes = [0 for i in range(8)]
 
     def yaw_state_callback(self, msg):
         self.yaw_state = msg.data
