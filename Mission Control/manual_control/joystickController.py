@@ -33,7 +33,7 @@ class JoyNode:
         self.depthPidPublisher = rospy.Publisher('/depth_control/pid_enable', Bool, queue_size=10)
         self.yawPidPublisher = rospy.Publisher('yaw_control/pid_enable', Bool, queue_size=10)
 
-        self.buttons =  [0 for i in range(12)]
+        self.buttons =  [False for i in range(12)]
         self.axes = [0 for i in range(6)]
 
     def yaw_state_callback(self, msg):
@@ -56,18 +56,15 @@ class JoyNode:
         return yaw
 
     def execute():
-        if self.buttons[0]:
-            pass
+        buttonIncreaseDepth = self.buttons[0] # Button A
+        buttonDecreaseDepth = self.buttons[1] # Button Y
+        buttonRotateCounterClockwise = self.buttons[2] # Button X
+        buttonRotateClockwise = self.buttons[3] # Button B
 
-    def joyCallBack(self, joy):
-        "invoked every time a joystick message arrives"
-        global DEGREE_45, DEGREE_90
-   #     print(joy)
-  #      print(len(joy.buttons))
- #       print(len(joy.axes))
-        
-        
-        if joy.buttons[0]: # Button A -- Increase depth setpoint
+        axisStrafe = self.axes[6] # Axis Cross Key Left/Right
+        axisForward = self.axes[7] # Axis Cross Key Up/Down
+
+        if buttonIncreaseDepth: # Button A -- Increase depth setpoint
             if self.depth_state != None:
                 new_depth = self.depth_state + 1
                 depthObj = Int16()
@@ -75,24 +72,25 @@ class JoyNode:
                 print("Button A -- new depth: {}".format(new_depth))
                 self.depthSetpointPublisher.publish(depthObj)
 
-        if joy.buttons[1] == 1: # Button B
-            # Not mapped B
-            # Rotate clockwise
+
+        if buttonRotateClockwise: # Button B -- Rotate clockwise
+            # Increase setpoint clockwise
             if self.yaw_setpoint != None:
                 new_yaw = self.yaw_setpoint + DEGREE_1
                 new_yaw = self.fix_yaw(new_yaw)
                 yawObj = Float64()
                 yawObj.data = new_yaw
                 self.yawSetpointPublisher.publish(yawObj)
-            pass
-        else:
-            if self.yaw_state != None:
-                yawObj = Float64()
-                yawObj.data = self.yaw_state
-                self.yawSetpointPublisher.publish(yawObj)
+        # else:
+        #     # Stop rotating by setting the setpoint to current rotation
+        #     if self.yaw_state != None:
+        #         yawObj = Float64()
+        #         yawObj.data = self.yaw_state
+        #         self.yawSetpointPublisher.publish(yawObj)
 
-        if  joy.buttons[2]: # Button X -- Rotate Counter-clockwise
-            # Rotate counter-clockwise
+
+        if buttonRotateCounterClockwise: # Button X -- Rotate counter-clockwise
+            # Increase setpoint counter-clockwise
             if self.yaw_setpoint != None:
                 new_yaw = self.yaw_setpoint - DEGREE_1 
                 new_yaw = self.fix_yaw(new_yaw)
@@ -100,15 +98,15 @@ class JoyNode:
                 yawObj.data = new_yaw
                 print("Button X -- {}".format(new_yaw))
                 self.yawSetpointPublisher.publish(yawObj)
-            pass
-        else:
-            if self.yaw_state != None:
-                yawObj = Float64()
-                yawObj.data = self.yaw_state
-                self.yawSetpointPublisher.publish(yawObj)
+        # else:
+        #     # Stop rotating by setting the setpoint to current rotation
+        #     if self.yaw_state != None:
+        #         yawObj = Float64()
+        #         yawObj.data = self.yaw_state
+        #         self.yawSetpointPublisher.publish(yawObj)
 
-        if  joy.buttons[3]: # Button Y -- Decrease depth setpoint
-            # depth go down A
+
+        if buttonDecreaseDepth: # Button Y -- Decrease depth setpoint
             if self.depth_state != None:
                 new_depth = self.depth_state - 1
                 depthObj = Int16()
@@ -116,15 +114,16 @@ class JoyNode:
                 print("Button Y -- new depth: {}".format(new_depth))
                 self.depthSetpointPublisher.publish(depthObj)
 
-        if joy.buttons[4]:
+
+        if self.buttons[4]:
             # drop weight LB
             pass
 
-        if  joy.buttons[5]:
+        if self.buttons[5]:
             # torpedo launcher RB
             pass
 
-        if  joy.buttons[6]: # Button BACK -- Disable PIDs
+        if self.buttons[6]: # Button BACK -- Disable PIDs
             print("Button BACK -- ")
             off = Bool()
             off.data = False
@@ -132,64 +131,75 @@ class JoyNode:
             self.yawPidPublisher.publish(off)
             pass
 
-        if  joy.buttons[7]: # Button START -- Enable PIDs
+        if self.buttons[7]: # Button START -- Enable PIDs
             on = Bool()
             on.data = True
             self.depthPidPublisher.publish(on)
             self.yawPidPublisher.publish(on)
             pass
 
-        if  joy.buttons[8]:
+        if self.buttons[8]:
             # nothing mapped Power
             pass
 
-        if  joy.buttons[9]:
+        if self.buttons[9]:
             # nothing mapped Button Stick Left
             pass
 
-        if joy.buttons[10]:
+        if self.buttons[10]:
             # nothing mapped Button Stick Right
             pass
 
+        # AXES
 
-        if joy.axes[0]:
+        if self.axes[0]:
             # nothing mapped L/R Axis Stick Left
             pass
 
-        if  joy.axes[1]:
+        if self.axes[1]:
             # camera rotation U/D Axis Stick Left
             pass
 
-        if  joy.axes[2]:
+        if self.axes[2]:
             # nothing mapped LT
             pass
 
-        if  joy.axes[3]:
+        if self.axes[3]:
             # rotation about y-axis L/R Axis Stick Right
             pass
 
-        if joy.axes[4]:
+        if self.axes[4]:
             # rotation about y-axis U/D Axis Stick Right
             pass
 
-        if joy.axes[5]:
+        if self.axes[5]:
             # nothing mapped RT
             pass
 
-        if joy.axes[6]:
+        if self.axes[6]:
             # nothing mapped Cross Key L/R
             pass
 
+    def joyCallBack(self, joy):
+        "invoked every time a joystick message arrives"
+        global DEGREE_1, DEGREE_45, DEGREE_90
+        
+        for i in range(11):
+            self.buttons[i] = joy.buttons[i]
+        for i in range(7):
+            self.axes[i] = joy.axes[i]
+
         # Joystick Input: Cross Key Up/Down
         # sub moving fwd/bckwrd 
-        forwardInt16 = Int16()
-        if joy.axes[7] >= 0.5:
-            forwardInt16.data = 100
-        elif joy.axes[7] <= -0.5:
-            forwardInt16.data = -100
-        else:
-            forwardInt16.data = 0
-        self.forwardPublisher.publish(forwardInt16)
+
+        # forwardInt16 = Int16()
+        # if joy.axes[7] >= 0.5:
+        #     forwardInt16.data = 100
+        # elif joy.axes[7] <= -0.5:
+        #     forwardInt16.data = -100
+        # else:
+        #     forwardInt16.data = 0
+        # self.forwardPublisher.publish(forwardInt16)
 
 import atexit
 
