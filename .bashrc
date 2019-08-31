@@ -135,3 +135,5 @@ alias SD_INIT='sudo echo; (SD_CORE & sleep 5); (SD_AHRS & sleep 5); (SD_STM2 & s
 alias SD_Y='rostopic pub -1 /yaw_pwm std_msgs/Int16'
 alias SD_D='rostopic pub -1 /depth_pwm std_msgs/Int16'
 alias SD_CHECK='SD_Y 30; SD_Y 0; SD_D 30; SD_D 0'
+
+alias SD_JOYSTICK='export ROS_MASTER_URI=http://seadragon:11311; python Mission\ Control/manual_control/joystickController.py'
