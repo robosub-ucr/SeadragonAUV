@@ -56,9 +56,9 @@ class JoyNode:
 
     def execute(self):
         buttonIncreaseDepth = self.buttons[0] # Button A
-        buttonDecreaseDepth = self.buttons[1] # Button Y
+        buttonDecreaseDepth = self.buttons[3] # Button Y
         buttonRotateCounterClockwise = self.buttons[2] # Button X
-        buttonRotateClockwise = self.buttons[3] # Button B
+        buttonRotateClockwise = self.buttons[1] # Button B
 
         axisStrafe = self.axes[6] # Axis Cross Key Left/Right
         axisForward = self.axes[7] # Axis Cross Key Up/Down
@@ -72,19 +72,19 @@ class JoyNode:
                 print("Button A -- new depth: {}".format(new_depth))
                 self.depthSetpointPublisher.publish(depthObj)
             else:
-                print("Button A -- yaw state was not published")
+                print("Button A -- depth state was not published")
 
         if buttonRotateClockwise: # Button B -- Rotate clockwise
             print("Button B pressed")
             # Increase setpoint clockwise
-            if self.yaw_setpoint != None:
+            if self.yaw_state != None:
                 new_yaw = self.yaw_setpoint + DEGREE_1
                 new_yaw = self.fix_yaw(new_yaw)
                 yawObj = Float64()
                 yawObj.data = new_yaw
                 self.yawSetpointPublisher.publish(yawObj)
             else:
-                print("Button A -- yaw state was not published")
+                print("Button B -- yaw state was not published")
         # else:
         #     # Stop rotating by setting the setpoint to current rotation
         #     if self.yaw_state != None:
@@ -96,13 +96,15 @@ class JoyNode:
         if buttonRotateCounterClockwise: # Button X -- Rotate counter-clockwise
             print("Button X pressed")
             # Increase setpoint counter-clockwise
-            if self.yaw_setpoint != None:
+            if self.yaw_state != None:
                 new_yaw = self.yaw_setpoint - DEGREE_1 
                 new_yaw = self.fix_yaw(new_yaw)
                 yawObj = Float64()
                 yawObj.data = new_yaw
                 print("Button X -- {}".format(new_yaw))
                 self.yawSetpointPublisher.publish(yawObj)
+            else:
+                print("Button X -- yaw state was not published")
         # else:
         #     # Stop rotating by setting the setpoint to current rotation
         #     if self.yaw_state != None:
@@ -119,6 +121,8 @@ class JoyNode:
                 depthObj.data = new_depth
                 print("Button Y -- new depth: {}".format(new_depth))
                 self.depthSetpointPublisher.publish(depthObj)
+            else:
+                print("Button Y -- depth state was not published")
 
 
         if self.buttons[4]:
