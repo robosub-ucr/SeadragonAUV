@@ -205,10 +205,11 @@ class JoyNode:
         left_stick_magnitude = math.sqrt(x**2 + y**2)
         angle_radians = math.atan2(y,x)
         new_yaw = Float64()
+        new_yaw.data = 0.0
         if left_stick_magnitude >= 0.95:
             new_yaw.data = angle_radians
         elif not self.saved_angle is None:
-            new_yaw.data = self.saved_yaw
+            new_yaw.data = self.saved_angle
         else:
             new_yaw.data = self.yaw_state
         self.yawSetpointPublisher.publish(new_yaw)
