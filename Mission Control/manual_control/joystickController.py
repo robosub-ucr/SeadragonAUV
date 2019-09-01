@@ -222,7 +222,7 @@ class JoyNode:
         if self.buttons[10]: # Button Stick Right -- toggle saved yaw setpoint
             if left_stick_magnitude >= 0.95:
                 self.saved_angle = angle_radians
-            else
+            else:
                 self.saved_angle = None
 
         # AXES
