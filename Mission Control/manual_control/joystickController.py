@@ -39,6 +39,9 @@ class JoyNode:
         self.buttons =  [False for i in range(11)] 
         self.axes = [0 for i in range(8)]
 
+        self.setpoint_button_toggle = False
+        self.saved_angle = None
+
     def yaw_state_callback(self, msg):
         self.yaw_state = msg.data
 
