@@ -79,7 +79,7 @@ class JoyNode:
             print("Button B pressed")
             # Increase setpoint clockwise
             if self.yaw_state != None:
-                new_yaw = self.yaw_setpoint + DEGREE_1
+                new_yaw = self.yaw_setpoint + DEGREE_1 / 50.0
                 new_yaw = self.fix_yaw(new_yaw)
                 yawObj = Float64()
                 yawObj.data = new_yaw
@@ -98,7 +98,7 @@ class JoyNode:
             print("Button X pressed")
             # Increase setpoint counter-clockwise
             if self.yaw_setpoint != None:
-                new_yaw = self.yaw_setpoint - DEGREE_1 
+                new_yaw = self.yaw_setpoint - DEGREE_1 / 50.0
                 new_yaw = self.fix_yaw(new_yaw)
                 yawObj = Float64()
                 yawObj.data = new_yaw
