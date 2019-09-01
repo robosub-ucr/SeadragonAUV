@@ -1,6 +1,7 @@
 import rospy
 from sensor_msgs.msg import Joy
 from std_msgs.msg import Int32, Float64, Bool, Int16
+import math
 
 buttonA = 0 
 forwardPublisher = 0
@@ -60,6 +61,9 @@ class JoyNode:
         buttonDecreaseDepth = self.buttons[3] # Button Y
         buttonRotateCounterClockwise = self.buttons[2] # Button X
         buttonRotateClockwise = self.buttons[1] # Button B
+
+        triggerDepth = self.axes[2] # Axis Left Trigger
+        triggerYaw = self.axes[5] # Axis Right Trigger
 
         axisStrafe = self.axes[6] # Axis Cross Key Left/Right
         axisForward = self.axes[7] # Axis Cross Key Up/Down
@@ -158,6 +162,40 @@ class JoyNode:
             else:
                 print("Button START -- yaw state not published. Check AHRS?")
 
+        # Left Trigger -- manually set depth pwm
+        if triggerDepth:
+            value = triggerDepth
+            value += 1  # adjust from [-1,1] to [0,2],  so no negative thrust (depth)
+            value /= 2  # scale from [0,2] to [0,1], so button value is a percent of max thrust
+            value *= 150  # scale from [0,1] to [0,150], so thrust scales from 0 to our desired max
+
+            depth_pwm = Int16()
+            depth_pwm = value
+            print("Trigger DEPTH -- setting depth_pwm to " + str(value))
+            self.depthPublisher.publish(depth_pwm)
+            
+            
+        # Right Trigger -- manually set yaw forward pwm
+        if triggerYaw:
+            value = triggerYaw
+            value += 1  # adjust from [-1,1] to [0,2],  so no negative thrust (depth)
+            value /= 2  # scale from [0,2] to [0,1], so button value is a percent of max thrust
+            value *= 150  # scale from [0,1] to [0,150], so thrust scales from 0 to our desired max
+
+            yaw_pwm = Int16()
+            yaw_pwm = value
+            print("Trigger YAW_FORWARD -- setting yaw to " + str(value))
+            self.forwardPublisher.publish(yaw_pwm)
+            
+        
+        # Left Stick -- Analog rotation about Y-axis
+        x = -1 * self.axis[3] # axis goes from +1 to -1, so we flip the sign to change it to standard coordinate system
+        y = self.axis[4]
+        angle_radians = math.atan2(y,x)
+        #angle_degrees = math.atan2(y,x) / math.pi * 180
+
+        
+        
         if self.buttons[8]:
             # nothing mapped Power
             pass
@@ -180,10 +218,6 @@ class JoyNode:
             # camera rotation U/D Axis Stick Left
             pass
 
-        if self.axes[2]:
-            # nothing mapped LT
-            pass
-
         if self.axes[3]:
             # rotation about y-axis L/R Axis Stick Right
             pass
@@ -192,36 +226,18 @@ class JoyNode:
             # rotation about y-axis U/D Axis Stick Right
             pass
 
-        if self.axes[5]:
-            # nothing mapped RT
-            pass
-
         if self.axes[6]:
             # nothing mapped Cross Key L/R
             pass
 
     def joyCallBack(self, joy):
-        "invoked every time a joystick message arrives"
+        #"invoked every time a joystick message arrives"
         global DEGREE_1, DEGREE_45, DEGREE_90
         
         for i in range(len(self.buttons)):
             self.buttons[i] = joy.buttons[i]
         for i in range(len(self.axes)):
             self.axes[i] = joy.axes[i]
-
-        # 
-
-        # Joystick Input: Cross Key Up/Down
-        # sub moving fwd/bckwrd 
-
-        # forwardInt16 = Int16()
-        # if joy.axes[7] >= 0.5:
-        #     forwardInt16.data = 100
-        # elif joy.axes[7] <= -0.5:
-        #     forwardInt16.data = -100
-        # else:
-        #     forwardInt16.data = 0
-        # self.forwardPublisher.publish(forwardInt16)
 
 import atexit
 
@@ -247,7 +263,7 @@ atexit.register(kill_motors)
 
 
 def main():
-    rospy.init_node('joystickController');
+    rospy.init_node('joystickController')
     joyObject = JoyNode()
 
     print("Python Project Running....")
