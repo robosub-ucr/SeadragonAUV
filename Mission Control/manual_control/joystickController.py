@@ -21,14 +21,14 @@ class JoyNode:
         self.yaw_setpoint = None
         self.depth_setpoint = None
         rospy.Subscriber('/yaw_control/state', Float64, self.yaw_state_callback)
-        rospy.Subscriber('/depth_control/state', Int16, self.depth_state_callback)
+        rospy.Subscriber('/depth_control/state', Float64, self.depth_state_callback)
         rospy.Subscriber('/yaw_control/setpoint', Float64, self.yaw_setpoint_callback)
-        rospy.Subscriber('/depth_control/setpoint', Int16, self.depth_setpoint_callback)
+        rospy.Subscriber('/depth_control/setpoint', Float64, self.depth_setpoint_callback)
 
         self.depthPublisher = rospy.Publisher('/depth_pwm', Int16, queue_size=10)
         self.forwardPublisher = rospy.Publisher('/yaw_pwm', Int16, queue_size=10)
         self.yawSetpointPublisher = rospy.Publisher('/yaw_control/setpoint', Float64, queue_size=10)
-        self.depthSetpointPublisher = rospy.Publisher('/depth_control/setpoint', Int16, queue_size=10)
+        self.depthSetpointPublisher = rospy.Publisher('/depth_control/setpoint', Float64, queue_size=10)
         
         self.depthPidPublisher = rospy.Publisher('/depth_control/pid_enable', Bool, queue_size=10)
         self.yawPidPublisher = rospy.Publisher('yaw_control/pid_enable', Bool, queue_size=10)
@@ -70,7 +70,7 @@ class JoyNode:
             print("Button A pressed")
             if self.depth_state != None:
                 new_depth = self.depth_state + 1
-                depthObj = Int16()
+                depthObj = Float64()
                 depthObj.data = new_depth
                 print("Button A -- new depth: {}".format(new_depth))
                 self.depthSetpointPublisher.publish(depthObj)
@@ -121,7 +121,7 @@ class JoyNode:
             print("Button Y pressed")
             if self.depth_state != None:
                 new_depth = self.depth_state - 1
-                depthObj = Int16()
+                depthObj = Float64()
                 depthObj.data = new_depth
                 print("Button Y -- new depth: {}".format(new_depth))
                 self.depthSetpointPublisher.publish(depthObj)
@@ -141,12 +141,12 @@ class JoyNode:
             print("Button BACK -- PIDs are disabled")
             off = Bool()
             off.data = False
-            zeroInt = Int16()
-            zeroInt.data = 0
+            zeroFloat = Float64()
+            zeroFloat.data = 0.0
             self.depthPidPublisher.publish(off)
             self.yawPidPublisher.publish(off)
-            self.forwardPublisher.publish(zeroInt)
-            self.depthPublisher.publish(zeroInt)
+            self.forwardPublisher.publish(zeroFloat)
+            self.depthPublisher.publish(zeroFloat)
 
         if self.buttons[7]: # Button START -- Enable PIDs
             print("Button START -- PIDs are enabled")
