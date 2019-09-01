@@ -288,11 +288,14 @@ atexit.register(kill_motors)
 
 def main():
     rospy.init_node('joystickController')
+    delay = rospy.Rate(20)
+
     joyObject = JoyNode()
 
     print("Python Project Running....")
     while not rospy.is_shutdown():
        joyObject.execute()
+       delay.sleep()
 
 if __name__ == '__main__':
     main()
