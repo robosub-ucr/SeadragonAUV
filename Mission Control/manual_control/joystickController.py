@@ -33,7 +33,9 @@ class JoyNode:
         self.depthPidPublisher = rospy.Publisher('/depth_control/pid_enable', Bool, queue_size=10)
         self.yawPidPublisher = rospy.Publisher('yaw_control/pid_enable', Bool, queue_size=10)
 
-        self.buttons =  [False for i in range(11)]
+        # List of buttons and axes for the Microsoft XBox Wired Controller
+        # http://wiki.ros.org/joy
+        self.buttons =  [False for i in range(11)] 
         self.axes = [0 for i in range(8)]
 
     def yaw_state_callback(self, msg):
@@ -78,14 +80,14 @@ class JoyNode:
         if buttonRotateClockwise: # Button B -- Rotate clockwise
             print("Button B pressed")
             # Increase setpoint clockwise
-            if self.yaw_state != None:
+            if self.yaw_setpoint != None:
                 new_yaw = self.yaw_setpoint + DEGREE_1 / 50.0
                 new_yaw = self.fix_yaw(new_yaw)
                 yawObj = Float64()
                 yawObj.data = new_yaw
                 self.yawSetpointPublisher.publish(yawObj)
             else:
-                print("Button B -- yaw state was not published")
+                print("Button B -- yaw setpoint was not published. Press the START button")
         # else:
         #     # Stop rotating by setting the setpoint to current rotation
         #     if self.yaw_state != None:
@@ -105,7 +107,8 @@ class JoyNode:
                 print("Button X -- {}".format(new_yaw))
                 self.yawSetpointPublisher.publish(yawObj)
             else:
-                print("Button X -- yaw state was not published")
+                print("Button X -- yaw setpoint was not published. Press the START button")
+
         # else:
         #     # Stop rotating by setting the setpoint to current rotation
         #     if self.yaw_state != None:
@@ -135,7 +138,7 @@ class JoyNode:
             pass
 
         if self.buttons[6]: # Button BACK -- Disable PIDs
-            print("Button BACK -- Disable PIDs")
+            print("Button BACK -- PIDs are disabled")
             off = Bool()
             off.data = False
             zeroInt = Int16()
@@ -146,7 +149,7 @@ class JoyNode:
             self.depthPublisher.publish(zeroInt)
 
         if self.buttons[7]: # Button START -- Enable PIDs
-            print("Button START -- Enable PIDs")
+            print("Button START -- PIDs are enabled")
             on = Bool()
             on.data = True
             self.depthPidPublisher.publish(on)
@@ -156,7 +159,7 @@ class JoyNode:
                 yaw.data = self.yaw_state
                 self.yawSetpointPublisher.publish(yaw)
             else:
-                print("Button START -- yaw state not published. Check AHRS?")
+                print("Button START -- /yaw_control/state has not been published. Check that AHRS is running?")
 
         if self.buttons[8]:
             # nothing mapped Power
