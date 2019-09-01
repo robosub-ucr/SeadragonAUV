@@ -208,11 +208,14 @@ class JoyNode:
         new_yaw.data = 0.0
         if left_stick_magnitude >= 0.95:
             new_yaw.data = angle_radians
+            self.yawSetpointPublisher.publish(new_yaw)
         elif not self.saved_angle is None:
             new_yaw.data = self.saved_angle
-        else:
+            self.yawSetpointPublisher.publish(new_yaw)
+        elif not self.yaw_state is None:
             new_yaw.data = self.yaw_state
-        self.yawSetpointPublisher.publish(new_yaw)
+            self.yawSetpointPublisher.publish(new_yaw)
+        
 
         if self.buttons[8]:
             # nothing mapped Power
