@@ -85,6 +85,7 @@ class JoyNode:
                 new_yaw = self.fix_yaw(new_yaw)
                 yawObj = Float64()
                 yawObj.data = new_yaw
+                print("Button B -- {}".format(new_yaw))
                 self.yawSetpointPublisher.publish(yawObj)
             else:
                 print("Button B -- yaw setpoint was not published. Press the START button")
@@ -143,9 +144,11 @@ class JoyNode:
             off.data = False
             zeroFloat = Float64()
             zeroFloat.data = 0.0
+            zeroInt = Int16()
+            zeroInt.data = 0
             self.depthPidPublisher.publish(off)
             self.yawPidPublisher.publish(off)
-            self.forwardPublisher.publish(zeroFloat)
+            self.forwardPublisher.publish(zeroInt)
             self.depthPublisher.publish(zeroFloat)
 
         if self.buttons[7]: # Button START -- Enable PIDs
