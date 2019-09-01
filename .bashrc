@@ -127,16 +127,16 @@ echo "THIS IS SEADRAGON LIVE!"
 source ~/catkin_ws/devel/setup.bash
 export ROS_HOSTNAME=seadragon
 
+alias SD_JOYSTICK='export ROS_MASTER_URI=http://seadragon:11311; python ~/seadragonauv/Mission\ Control/manual_control/joystickController.py'
 alias SD_CORE='roscore'
 alias SD_AHRS='sudo chmod 666 /dev/ttyACM0; rosrun myahrs_driver myahrs_driver _port:=/dev/ttyACM0'
 alias SD_STM1='sudo chmod 666 /dev/ttyACM1; rosrun rosserial_python serial_node.py _port:=/dev/ttyACM1'
 alias SD_STM2='sudo chmod 666 /dev/ttyACM2; rosrun rosserial_python serial_node.py _port:=/dev/ttyACM2'
 alias SD_LAUNCH='roslaunch motor_controllers attitude_control.launch'
 
-alias SD_INIT='sudo echo; (SD_CORE & sleep 5); (SD_AHRS & sleep 5); (SD_STM2 & sleep 5); SD_LAUNCH'
+alias SD_INIT='sudo echo; (SD_JOYSTICK & sleep 5); (SD_CORE & sleep 5); (SD_AHRS & sleep 5); (SD_STM2 & sleep 5); SD_LAUNCH'
 
 alias SD_Y='rostopic pub -1 /yaw_pwm std_msgs/Int16'
 alias SD_D='rostopic pub -1 /depth_pwm std_msgs/Int16'
 alias SD_CHECK='SD_Y 30; SD_Y 0; SD_D 30; SD_D 0'
 
-alias SD_JOYSTICK='export ROS_MASTER_URI=http://seadragon:11311; python Mission\ Control/manual_control/joystickController.py'

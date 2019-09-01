@@ -199,11 +199,12 @@ class JoyNode:
         # Left Stick -- Analog rotation about Y-axis
         x = -1 * self.axes[3] # axis goes from +1 to -1, so we flip the sign to change it to standard coordinate system
         y = self.axes[4]
-        angle_radians = math.atan2(y,x)
-        #magnitude = math.mag()
-        #angle_degrees = math.atan2(y,x) / math.pi * 180
-
-        
+        magnitude = math.sqrt(x**2 + y**2)
+        if magnitude >= 0.95:
+            angle_radians = math.atan2(y,x)
+            new_yaw = Float64()
+            new_yaw.data = angle_radians
+            self.yawSetPublisher.publish(new_yaw)
         
         if self.buttons[8]:
             # nothing mapped Power
