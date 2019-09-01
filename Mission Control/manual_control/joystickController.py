@@ -25,9 +25,10 @@ class JoyNode:
         rospy.Subscriber('/yaw_control/setpoint', Float64, self.yaw_setpoint_callback)
         rospy.Subscriber('/depth_control/setpoint', Int16, self.depth_setpoint_callback)
 
-        self.forwardPublisher = rospy.Publisher('/yaw_pwm', Int16, queue_size= 10 )
-        self.yawSetpointPublisher = rospy.Publisher('/yaw_control/setpoint', Float64, queue_size= 10 )
-        self.depthSetpointPublisher = rospy.Publisher('/depth_control/setpoint', Int16, queue_size= 10 )
+        self.depthPublisher = rospy.Publisher('/depth_pwm', Int16, queue_size=10)
+        self.forwardPublisher = rospy.Publisher('/yaw_pwm', Int16, queue_size=10)
+        self.yawSetpointPublisher = rospy.Publisher('/yaw_control/setpoint', Float64, queue_size=10)
+        self.depthSetpointPublisher = rospy.Publisher('/depth_control/setpoint', Int16, queue_size=10)
         
         self.depthPidPublisher = rospy.Publisher('/depth_control/pid_enable', Bool, queue_size=10)
         self.yawPidPublisher = rospy.Publisher('yaw_control/pid_enable', Bool, queue_size=10)
@@ -96,7 +97,7 @@ class JoyNode:
         if buttonRotateCounterClockwise: # Button X -- Rotate counter-clockwise
             print("Button X pressed")
             # Increase setpoint counter-clockwise
-            if self.yaw_state != None:
+            if self.yaw_setpoint != None:
                 new_yaw = self.yaw_setpoint - DEGREE_1 
                 new_yaw = self.fix_yaw(new_yaw)
                 yawObj = Float64()
@@ -134,19 +135,28 @@ class JoyNode:
             pass
 
         if self.buttons[6]: # Button BACK -- Disable PIDs
-            print("Button BACK -- ")
+            print("Button BACK -- Disable PIDs")
             off = Bool()
             off.data = False
+            zeroInt = Int16()
+            zeroInt.data = 0
             self.depthPidPublisher.publish(off)
             self.yawPidPublisher.publish(off)
-            pass
+            self.forwardPublisher.publish(zeroInt)
+            self.depthPublisher.publish(zeroInt)
 
         if self.buttons[7]: # Button START -- Enable PIDs
+            print("Button START -- Enable PIDs")
             on = Bool()
             on.data = True
             self.depthPidPublisher.publish(on)
             self.yawPidPublisher.publish(on)
-            pass
+            if self.yaw_state != None:
+                yaw = Float64()
+                yaw.data = self.yaw_state
+                self.yawSetpointPublisher.publish(yaw)
+            else:
+                print("Button START -- yaw state not published. Check AHRS?")
 
         if self.buttons[8]:
             # nothing mapped Power
