@@ -149,7 +149,7 @@ class JoyNode:
             self.depthPidPublisher.publish(off)
             self.yawPidPublisher.publish(off)
             self.forwardPublisher.publish(zeroInt)
-            self.depthPublisher.publish(zeroFloat)
+            self.depthPublisher.publish(zeroInt)
 
         if self.buttons[7]: # Button START -- Enable PIDs
             print("Button START -- PIDs are enabled")
