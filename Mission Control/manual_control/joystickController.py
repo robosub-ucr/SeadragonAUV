@@ -171,7 +171,8 @@ class JoyNode:
         # Left Trigger -- manually set depth pwm
         if triggerDepth:
             value = triggerDepth
-            value += 1  # adjust from [-1,1] to [0,2],  so no negative thrust (depth)
+            value -= 1  # adjust from [-1,1] to [-2,0], so can make default zero (depth)
+            value *= -1  # adjust from [-2,0] to [0,2], had to do - 1 and * 1 so not using trigger posts "0" instead of "2"
             value /= 2  # scale from [0,2] to [0,1], so button value is a percent of max thrust
             value *= 150  # scale from [0,1] to [0,150], so thrust scales from 0 to our desired max
 
