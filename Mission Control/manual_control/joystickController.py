@@ -195,9 +195,10 @@ class JoyNode:
             
         
         # Left Stick -- Analog rotation about Y-axis
-        x = -1 * self.axis[3] # axis goes from +1 to -1, so we flip the sign to change it to standard coordinate system
-        y = self.axis[4]
+        x = -1 * self.axes[3] # axis goes from +1 to -1, so we flip the sign to change it to standard coordinate system
+        y = self.axes[4]
         angle_radians = math.atan2(y,x)
+        #magnitude = math.mag()
         #angle_degrees = math.atan2(y,x) / math.pi * 180
 
         
