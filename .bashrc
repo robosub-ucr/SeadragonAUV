@@ -126,6 +126,7 @@ echo "THIS IS SEADRAGON LIVE!"
 
 source ~/catkin_ws/devel/setup.bash
 export ROS_HOSTNAME=seadragon
+export ROS_MASTER_URI=http://seadragon:11311
 
 alias SD_EXPORT='export ROS_MASTER_URI=http://seadragon:11311'
 alias SD_JOYSTICK='export ROS_MASTER_URI=http://seadragon:11311; python ~/seadragonauv/Mission\ Control/manual_control/joystickController.py'
