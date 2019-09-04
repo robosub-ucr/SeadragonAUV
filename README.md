@@ -1,21 +1,18 @@
-# UCR RoboSub
+# Seadragon AUV
 
-We are the University of California, Riverside's competitive autonomous underwater vehicle project, competing internationally in RoboNation's RoboSub Competition.
+The Seadragon AUV (Autonomous Underwater Vehicle) is built by the University of California, Riverside's student organization: RoboSub UCR. The AUV was built to participate in the RoboNation's international competition, RoboSub. The AUV completes a number of aquatic objectives, such as object identification and interaction, dropping markers in targets, launching torpedoes at targets, and responding to sound signals, all without human interaction.
 
-Each year we construct a submarine capable of completing a number of aquatic objectives entirely on its own. The sheer volume of design and construction needed requires a large interdisciplinary team working collaboratively to share expertise and comunication throughout the process.
-
-Sponsored by UCR's IEEE and ASME chapters, the project exposes all students to utilizing their coursework skills, working with others outside their major, and granting experience with a large-scale project with real-world applications. For the 2018-2019 academic year, UCR RoboSub has about \~30 active members, across almost every engineering major.
-
-### Software
-
-The Software team gives the submarine life, creating the artificial intelligence, computer vision, and software interface modules that allow the robot to see, sense, and move. We use Robot Operating System (ROS), Python, and C/C++ for our controls.
+The RoboSub UCR's software team gives the submarine life, creating the artificial intelligence, computer vision, and software interface modules that allow the robot to see, sense, and move. We use Robot Operating System (ROS), Python, and C/C++ for our controls.
 
 ## Getting Started
 
 ### Prerequisites
 
-* Ubuntu 16.04
-* Robot Operating System (ROS) 
+* Ubuntu 18.04
+* Python 2
+* C++
+* ROS Melodic
+* OpenCV
 
 ### Installation
 
@@ -25,7 +22,47 @@ TODO
 
 TODO
 
-### Running ROS tests
+
+### Initializing ROS and nodes
+
+Initialize ROS master node:
+```
+roscore
+```
+
+Initialie AHRS node:
+```
+sudo chmod 666 /dev/ttyACM0
+rosrun myahrs_driver myahrs_driver _port:=/dev/ttyACM0
+```
+
+Initialize STM32:
+```
+sudo chmod 666 /dev/ttyACM2
+rosrun rosserial_python serial_node.py _port:=/dev/ttyACM2
+```
+
+Launch GUI:
+```
+roslaunch motor_controllers attitude_control.launch
+```
+
+Find which device (jsX) is the Joystick:
+```
+ls /dev/input/
+sudo jstest /dev/input/jsX
+```
+
+Initialize Joystick node:
+```
+ls -l /dev/input/jsX
+sudo chmod a+rw /dev/input/jsX
+rosparam set joy_node/dev "/dev/input/jsX"
+rosrun joy joy_node
+```
+Note: A joystick controller must be connected to the computer.
+
+### Testing publishers, subscribers, and state machines
 
 1. Open a terminal on any directory and type `roscore`
 2. Go to the `SeadragonAUV/Mission Control/competition_tasks/src/` folder.
