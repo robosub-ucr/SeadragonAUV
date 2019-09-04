@@ -25,35 +25,35 @@ TODO
 
 ### Initializing ROS and nodes
 
-Initialize ROS master node:
+1. Initialize ROS master node (``SD_CORE``)
 ```
 roscore
 ```
 
-Initialie AHRS node:
+2. Initialie AHRS node (``SD_AHRS``)
 ```
 sudo chmod 666 /dev/ttyACM0
 rosrun myahrs_driver myahrs_driver _port:=/dev/ttyACM0
 ```
 
-Initialize STM32:
+3. Initialize STM32 (``SD_STM2``)
 ```
 sudo chmod 666 /dev/ttyACM2
 rosrun rosserial_python serial_node.py _port:=/dev/ttyACM2
 ```
 
-Launch GUI:
+4. Launch GUI (``SD_LAUNCH``)
 ```
 roslaunch motor_controllers attitude_control.launch
 ```
 
-Find which device (jsX) is the Joystick:
+5. Find which device (jsX) is the Joystick:
 ```
 ls /dev/input/
 sudo jstest /dev/input/jsX
 ```
 
-Initialize Joystick node:
+6. Initialize Joystick node (``SD_JOYSTICK``)
 ```
 ls -l /dev/input/jsX
 sudo chmod a+rw /dev/input/jsX
