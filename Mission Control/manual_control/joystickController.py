@@ -2,300 +2,299 @@ import rospy
 from sensor_msgs.msg import Joy
 from std_msgs.msg import Int32, Float64, Bool, Int16
 import math
+import numpy as np
 
-buttonA = 0 
-forwardPublisher = 0
+class JoyInput(IntEnum):
+  A = 0
+  B = 1
+  X = 2
+  Y = 3
+  LB = 4
+  RB = 5
+  BACK = 6
+  START = 7
+  POWER = 8 # XBox button
+  LS = 9    # left stick button
+  RS = 10   # right stick button
 
-DEGREE_45 = 0.785398
-DEGREE_90 = 1.5708
-DEGREE_1 =  0.0174
+  LS_X = 11    # left stick left/right
+  LS_Y = 12    # left stick up/down
+  LT = 13      # left trigger
+  RS_X = 14    # right stick left/right
+  RS_Y = 15    # right stick up/down
+  RT = 16      # right trigger
+  CROSS_X = 17 # cross key left/right
+  CROSS_Y = 18 # cross key up/down
 
-class JoyNode:
-    "Xbox controller for AUV"
+class Topic:
+  YAW_PWM = '/yaw_pwm'
+  YAW_PWM_FEEDBACK = '/yaw_pwm_feedback'
+  YAW_PID = '/yaw_control/pid_enable'
+  YAW_STATE = '/yaw_control/state'
+  YAW_SETPOINT = '/yaw_control/setpoint'
+  
+  DEPTH_PWM = '/depth_pwm'
+  DEPTH_PID = '/depth_control/pid_enable'
+  DEPTH_STATE = '/depth_control/state'
+  DEPTH_SETPOINT = '/depth_control/setpoint'
 
-    def __init__(self):
-        "JoyNode Constructor"
-        rospy.Subscriber('joy', Joy, self.joyCallBack)
+class Joystick:
+  """This class contains all information related to the Microsoft XBox 360 Wired controller. 
+  It subscribes to the /joy topic. And publishes to topics related to controlling the behavior of the AUV, such as /yaw_pwm and /depth_control/setpoint. 
+  In essence, it takes joystic inputs and converts them into messages for other nodes.
+  """
+  
+  MAX_DEPTH_PWM = 130
+  MAX_YAW_PWM = 150
+  MAX_YAW_PWM_FEEDBACK = 75
+  MAX_DEPTH = 7 * 12 # 7 feet
+  RS_ANGLE = 'right_stick_angle'
 
-        self.yaw_state = None
-        self.depth_state = None
-        self.yaw_setpoint = None
-        self.depth_setpoint = None
-        rospy.Subscriber('/yaw_control/state', Float64, self.yaw_state_callback)
-        rospy.Subscriber('/depth_control/state', Float64, self.depth_state_callback)
-        rospy.Subscriber('/yaw_control/setpoint', Float64, self.yaw_setpoint_callback)
-        rospy.Subscriber('/depth_control/setpoint', Float64, self.depth_setpoint_callback)
+  def __init__(self):
+    """Initializes the inputs and inputs as dictionaries, 
+    and sets up Subscribers and Publishers for various topics.
+    Learn more: http://wiki.ros.org/joy
+    """
 
-        self.depthPublisher = rospy.Publisher('/depth_pwm', Int16, queue_size=10)
-        self.forwardPublisher = rospy.Publisher('/yaw_pwm', Int16, queue_size=10)
-        self.yawSetpointPublisher = rospy.Publisher('/yaw_control/setpoint', Float64, queue_size=10)
-        self.depthSetpointPublisher = rospy.Publisher('/depth_control/setpoint', Float64, queue_size=10)
-        
-        self.depthPidPublisher = rospy.Publisher('/depth_control/pid_enable', Bool, queue_size=10)
-        self.yawPidPublisher = rospy.Publisher('yaw_control/pid_enable', Bool, queue_size=10)
+    # The Microsoft XBox 360 Wired controller has 11 buttons and 8 axes.
+    # Buttons can be 0 (not pressed) or 1 (pressed)
+    # Axes are floats and range between -1 and 1. Note that for LT and RT, their "not pressed" value is 1 and for the others it is 0. Cross keys only have values -1, 0, and 1. The others have be any value in between -1 and 1.
+    num_buttons = 11
+    num_axes = 8
+    self.inputs = [0 for i in range(num_buttons + num_axes)]
+    self.inputs[JoyInput.LT] = self.inputs[JoyInput.RT] = 1
 
-        # List of buttons and axes for the Microsoft XBox Wired Controller
-        # http://wiki.ros.org/joy
-        self.buttons =  [False for i in range(11)] 
-        self.axes = [0 for i in range(8)]
+    # Dictionary of saved inputs. If an input is not currently saved, you must set it to None.
+    # For example, the LS_Y ("left stick Y") axis may be saved in self.saved[JoyInput.LS_Y]
+    self.saved = {
+      JoyInput.LS_Y: None,
+      Joystick.RS_ANGLE: None,
+    }
 
-        self.setpoint_button_toggle = False
-        self.saved_angle = None
+    # Field variables
+    self.depth_state = None # stores the depth state
+    self.depth_last_received = 0 # how long since the last depth state callback
+    self.depth_pwm_input = 0 # tracks pwm given to depth thrusters
 
-    def yaw_state_callback(self, msg):
-        self.yaw_state = msg.data
+    # ROS Subscribers
+    rospy.Subscriber(Topic.YAW_STATE, Float64, self.yaw_state_callback)
+    rospy.Subscriber(Topic.DEPTH_STATE, Float64, self.depth_state_callback)
+    rospy.Subscriber(Topic.YAW_SETPOINT, Float64, self.yaw_setpoint_callback)
+    rospy.Subscriber(Topic.DEPTH_SETPOINT, Float64, self.depth_setpoint_callback)
 
-    def depth_state_callback(self, msg):
-        self.depth_state = msg.data
+    # ROS Publishers
+    self.topics = {
+      Topic.YAW_PWM: {'publisher':rospy.Publisher(Topic.YAW_PWM, Int16, queue_size=10), 'msg':Int16},
+      Topic.YAW_PWM_FEEDBACK: {'publisher':rospy.Publisher(Topic.YAW_PWM_FEEDBACK, Int16, queue_size=10), 'msg':Int16},
+      Topic.YAW_PID: {'publisher':rospy.Publisher(Topic.YAW_PID, Bool, queue_size=10), 'msg':Bool},
+      Topic.YAW_SETPOINT: {'publisher':rospy.Publisher(Topic.YAW_SETPOINT, Float64, queue_size=10), 'msg':Float64},
 
-    def yaw_setpoint_callback(self, msg):
-        self.yaw_setpoint = msg.data
+      Topic.DEPTH_PWM: {'publisher':rospy.Publisher(Topic.DEPTH_PWM, Int16, queue_size=10), 'msg':Int16},
+      Topic.DEPTH_PID: {'publisher':rospy.Publisher(Topic.DEPTH_PID, Bool, queue_size=10), 'msg':Bool},
+      Topic.DEPTH_SETPOINT: {'publisher':rospy.Publisher(Topic.DEPTH_SETPOINT, Int16, queue_size=10), 'msg':Int16},
+    }
 
-    def depth_setpoint_callback(self, msg):
-        self.depth_setpoint = msg.data
+  def yaw_state_callback(self, msg):
+    self.yaw_state = msg.data
 
-    def fix_yaw(self, yaw):
-        if yaw >= 3.14:
-            yaw -= 2 * 3.14
-        elif yaw <= -3.14:
-            yaw += 2 * 3.14
-        return yaw
+  def depth_state_callback(self, msg):
+    self.depth_state = msg.data
 
-    def execute(self):
-        buttonIncreaseDepth = self.buttons[0] # Button A
-        buttonDecreaseDepth = self.buttons[3] # Button Y
-        buttonRotateCounterClockwise = self.buttons[2] # Button X
-        buttonRotateClockwise = self.buttons[1] # Button B
+  def yaw_setpoint_callback(self, msg):
+    self.yaw_setpoint = msg.data
 
-        triggerDepth = self.axes[2] # Axis Left Trigger
-        triggerYaw = self.axes[5] # Axis Right Trigger
+  def depth_setpoint_callback(self, msg):
+    self.depth_setpoint = msg.data
+  
+  def joy_callback(self, joy):
+    """This function runs whenver the joystick node publishes data. It stores the values from the topic /joy. These values are mainly used in execute()."""
+    self.inputs[JoyInput.A] = joy.buttons[0]
+    self.inputs[JoyInput.B] = joy.buttons[1]
+    self.inputs[JoyInput.X] = joy.buttons[2]
+    self.inputs[JoyInput.Y] = joy.buttons[3]
+    self.inputs[JoyInput.LB] = joy.buttons[4]
+    self.inputs[JoyInput.RB] = joy.buttons[5]
+    self.inputs[JoyInput.BACK] = joy.buttons[6]
+    self.inputs[JoyInput.START] = joy.buttons[7]
+    self.inputs[JoyInput.POWER] = joy.buttons[8]
+    self.inputs[JoyInput.LS] = joy.buttons[9]
+    self.inputs[JoyInput.RS] = joy.buttons[10]
 
-        axisStrafe = self.axes[6] # Axis Cross Key Left/Right
-        axisForward = self.axes[7] # Axis Cross Key Up/Down
+    self.inputs[JoyInput.LS_X] = joy.axes[0]
+    self.inputs[JoyInput.LS_Y] = joy.axes[1]
+    self.inputs[JoyInput.LT] = joy.axes[2]
+    self.inputs[JoyInput.RS_X] = joy.axes[3]
+    self.inputs[JoyInput.RS_Y] = joy.axes[4]
+    self.inputs[JoyInput.RT] = joy.axes[5]
+    self.inputs[JoyInput.CROSS_X] = joy.axes[6]
+    self.inputs[JoyInput.CROSS_Y] = joy.axes[7]
 
-        if buttonIncreaseDepth: # Button A -- Increase depth setpoint
-            print("Button A pressed")
-            if self.depth_state != None:
-                new_depth = self.depth_state + 1
-                depthObj = Float64()
-                depthObj.data = new_depth
-                print("Button A -- new depth: {}".format(new_depth))
-                self.depthSetpointPublisher.publish(depthObj)
-            else:
-                print("Button A -- depth state was not published")
+  def execute(self):
+    """Called from main()'s infinite while loop. Calls other functions that check for joystick inputs to determine how the AUV will behave.
+    """
+    # Check buttons
+    self.check_enable_pids(self.inputs[JoyInput.START])
+    self.check_disable_pids(self.inputs[JoyInput.BACK])
+    self.check_toggle(self.inputs[JoyInput.LS], self.inputs[JoyInput.LS_Y], self.saved[JoyInput.LS_Y])
 
-        if buttonRotateClockwise: # Button B -- Rotate clockwise
-            print("Button B pressed")
-            # Increase setpoint clockwise
-            if self.yaw_setpoint != None:
-                new_yaw = self.yaw_setpoint + DEGREE_1 / 50.0
-                new_yaw = self.fix_yaw(new_yaw)
-                yawObj = Float64()
-                yawObj.data = new_yaw
-                print("Button B -- {}".format(new_yaw))
-                self.yawSetpointPublisher.publish(yawObj)
-            else:
-                print("Button B -- yaw setpoint was not published. Press the START button")
-        # else:
-        #     # Stop rotating by setting the setpoint to current rotation
-        #     if self.yaw_state != None:
-        #         yawObj = Float64()
-        #         yawObj.data = self.yaw_state
-        #         self.yawSetpointPublisher.publish(yawObj)
+    # Check axes
+    self.input_forward(JoyInput.LS_Y)
+    self.input_depth(JoyInput.CROSS_Y)
+    self.input_rotate(JoyInput.LT, JoyInput.RT)
 
+    # yaw setpoint
+    magnitude, angle = self.input_yaw_setpoint(JoyInput.RS_X, JoyInput.RS_Y, Joystick.RS_ANGLE)
+    self.check_yaw_setpoint_toggle(JoyInput.RS, Joystick.RS_ANGLE, magnitude, angle)
 
-        if buttonRotateCounterClockwise: # Button X -- Rotate counter-clockwise
-            print("Button X pressed")
-            # Increase setpoint counter-clockwise
-            if self.yaw_setpoint != None:
-                new_yaw = self.yaw_setpoint - DEGREE_1 / 50.0
-                new_yaw = self.fix_yaw(new_yaw)
-                yawObj = Float64()
-                yawObj.data = new_yaw
-                print("Button X -- {}".format(new_yaw))
-                self.yawSetpointPublisher.publish(yawObj)
-            else:
-                print("Button X -- yaw setpoint was not published. Press the START button")
+  def check_disable_pids(self, input_value):
+    if input_value:
+      self.publish(Topic.DEPTH_PWM, 0)
+      self.publish(Topic.YAW_PWM, 0)
+      self.publish(Topic.DEPTH_PID, True)
+      self.publish(Topic.YAW_PID, True)
 
-        # else:
-        #     # Stop rotating by setting the setpoint to current rotation
-        #     if self.yaw_state != None:
-        #         yawObj = Float64()
-        #         yawObj.data = self.yaw_state
-        #         self.yawSetpointPublisher.publish(yawObj)
+  def check_enable_pids(self, input_value):
+    if input_value:
+      self.publish(Topic.DEPTH_PID, False)
+      self.publish(Topic.YAW_PID, False)
 
+  def check_yaw_setpoint_toggle(self, joy_input, saved_key, magnitude, angle):
+    """When the button is pressed: If the magnitude is close to 1, save the angle. Otherwise, erase the saved value.
+    """
+    if self.inputs[joy_input]:
+      if magnitude >= 0.95:
+        self.saved[saved_key] = angle
+      else:
+        self.saved[saved_key] = None
+    pass
 
-        if buttonDecreaseDepth: # Button Y -- Decrease depth setpoint
-            print("Button Y pressed")
-            if self.depth_state != None:
-                new_depth = self.depth_state - 1
-                depthObj = Float64()
-                depthObj.data = new_depth
-                print("Button Y -- new depth: {}".format(new_depth))
-                self.depthSetpointPublisher.publish(depthObj)
-            else:
-                print("Button Y -- depth state was not published")
+  def input_yaw_setpoint(self, joy_input_x, joy_input_y, saved_key):
+    """Calculates the magnitude and angle of the input (x,y). If magnitude is close to 1, set the angle as setpoint. If not close to 1 and there's a saved angle, use that angle. Else, do nothing.
+    """
+    x = self.inputs[joy_input_x] * -1 # change the x-coord to the standard coordinate system
+    y = self.inputs[joy_input_y]
+    magnitude = math.sqrt(x**2 + y**2)
+    angle = math.atan2(y, x) + math.pi/2 # rotate the angle so that 0 is north
+    if magnitude >= 0.95:
+      self.publish(Topic.YAW_SETPOINT, angle)
+    elif self.saved[saved_key]:
+      self.publish(Topic.YAW_SETPOINT, self.saved[saved_key])
+    print(x,y)
+    return magnitude, angle
 
+  def input_rotate(self, joy_input_counterclockwise, joy_input_clockwise):
+    """Calculates how much the two joystick triggers are being pressed to determine which direction to rotate. If the difference is positive, the AUV rotates counterclockwise. If negative, counterclockwise.
+    """
+    ccw = np.interp(self.inputs[joy_input_counterclockwise], [-1,1], [1, 0])
+    cw = np.interp(self.inputs[joy_input_clockwise], [-1,1], [1, 0])
+    yaw_pwm = ccw - cw
+    yaw_pwm = int(yaw_pwm * Joystick.MAX_YAW_PWM_FEEDBACK)
+    self.publish(Topic.YAW_PWM_FEEDBACK, yaw_pwm)
 
-        if self.buttons[4]:
-            # drop weight LB
-            pass
+  def publish(self, topic, value):
+    """Uses a Publisher to publish the value (wrapped in a msg object).
+    The topic is a key to access a tuple (Publisher, msg).
+    The msg object can be an Int16(), Bool(), etc.
+    """
+    msg = self.topics[topic]['msg']
+    msg.data = value
+    self.topics[topic]['publisher'].publish(msg)
+    print("published \t{} \t{}".format(topic, value))
 
-        if self.buttons[5]:
-            # torpedo launcher RB
-            pass
+  def check_toggle(self, toggle_button, input_value, saved_value):
+    """When the button is pressed and there's a saved value, set the saved value to None. Otherwise, set it to the axis' value.
+    """
+    if toggle_button and saved_value is None:
+      saved_value = input_value
+    elif toggle_button:
+      saved_value = None
+    return saved_value
 
-        if self.buttons[6]: # Button BACK -- Disable PIDs
-            print("Button BACK -- PIDs are disabled")
-            off = Bool()
-            off.data = False
-            zeroFloat = Float64()
-            zeroFloat.data = 0.0
-            zeroInt = Int16()
-            zeroInt.data = 0
-            self.depthPidPublisher.publish(off)
-            self.yawPidPublisher.publish(off)
-            self.forwardPublisher.publish(zeroInt)
-            self.depthPublisher.publish(zeroInt)
+  def input_forward(self, joy_input):
+    """Publishes a value to the topic /yaw_pwm. . If a saved value exists, use it. Otherwise, use the joystick input.
+    """
+    if self.saved[joy_input]:
+      value = self.saved[joy_input]
+    else:
+      value = self.inputs[joy_input]
+    yaw_pwm = np.interp(value, [-1, 1], [0, Joystick.MAX_YAW_PWM])
+    self.publish(Topic.YAW_PWM, yaw_pwm)
 
-        if self.buttons[7]: # Button START -- Enable PIDs
-            print("Button START -- PIDs are enabled")
-            on = Bool()
-            on.data = True
-            self.depthPidPublisher.publish(on)
-            self.yawPidPublisher.publish(on)
-            if self.yaw_state != None:
-                yaw = Float64()
-                yaw.data = self.yaw_state
-                self.yawSetpointPublisher.publish(yaw)
-            else:
-                print("Button START -- /yaw_control/state has not been published. Check that AHRS is running?")
+  def is_depth_valid(self):
+    """Check that the depth was received recently and is above MAX_DEPTH.
+    """
+    if not self.depth_state:
+      print('depth was never received')
+      return False
+    if self.depth_last_received > 100:
+      print('depth not received for 100 ticks')
+      return False
+    if self.depth_state > Joystick.MAX_DEPTH:
+      print('depth > MAX_DEPTH')
+      return False
+    return True
 
-        # Left Trigger -- manually set depth pwm
-        if triggerDepth:
-            value = triggerDepth
-            value -= 1  # adjust from [-1,1] to [-2,0], so can make default zero (depth)
-            value *= -1  # adjust from [-2,0] to [0,2], had to do - 1 and * 1 so not using trigger posts "0" instead of "2"
-            value /= 2  # scale from [0,2] to [0,1], so button value is a percent of max thrust
-            value *= 150  # scale from [0,1] to [0,150], so thrust scales from 0 to our desired max
-
-            depth_pwm = Int16()
-            depth_pwm = value
-            print("Trigger DEPTH -- setting depth_pwm to " + str(value))
-            self.depthPublisher.publish(depth_pwm)
-            
-            
-        # Right Trigger -- manually set yaw forward pwm
-        if triggerYaw:
-            value = triggerYaw
-            value -= 1  # adjust from [-1,1] to [-2,0], so can make default zero (depth)
-            value *= -1  # adjust from [-2,0] to [0,2], had to do - 1 and * 1 so not using trigger posts "0" instead of "2"
-            value /= 2  # scale from [0,2] to [0,1], so button value is a percent of max thrust
-            value *= 150  # scale from [0,1] to [0,150], so thrust scales from 0 to our desired max
-
-            yaw_pwm = Int16()
-            yaw_pwm = value
-            print("Trigger YAW_FORWARD -- setting yaw to " + str(value))
-            self.forwardPublisher.publish(yaw_pwm)
-            
-        
-        # Left Stick -- Analog rotation about Y-axis
-        x = -1 * self.axes[3] # axis goes from +1 to -1, so we flip the sign to change it to standard coordinate system
-        y = self.axes[4]
-        left_stick_magnitude = math.sqrt(x**2 + y**2)
-        angle_radians = math.atan2(y,x)
-        new_yaw = Float64()
-        new_yaw.data = 0.0
-        if left_stick_magnitude >= 0.95:
-            new_yaw.data = angle_radians
-            self.yawSetpointPublisher.publish(new_yaw)
-        elif not self.saved_angle is None:
-            new_yaw.data = self.saved_angle
-            self.yawSetpointPublisher.publish(new_yaw)
-        elif not self.yaw_state is None:
-            new_yaw.data = self.yaw_state
-            self.yawSetpointPublisher.publish(new_yaw)
-        
-
-        if self.buttons[8]:
-            # nothing mapped Power
-            pass
-
-        if self.buttons[9]:
-            # nothing mapped Button Stick Left
-            pass
-
-        self.setpoint_button_toggle = False
-        if self.buttons[10]: # Button Stick Right -- toggle saved yaw setpoint
-            if left_stick_magnitude >= 0.95:
-                self.saved_angle = angle_radians
-            else:
-                self.saved_angle = None
-
-        # AXES
-
-        if self.axes[0]:
-            # nothing mapped L/R Axis Stick Left
-            pass
-
-        if self.axes[1]:
-            # camera rotation U/D Axis Stick Left
-            pass
-
-        if self.axes[3]:
-            # rotation about y-axis L/R Axis Stick Right
-            pass
-
-        if self.axes[4]:
-            # rotation about y-axis U/D Axis Stick Right
-            pass
-
-        if self.axes[6]:
-            # nothing mapped Cross Key L/R
-            pass
-
-    def joyCallBack(self, joy):
-        #"invoked every time a joystick message arrives"
-        global DEGREE_1, DEGREE_45, DEGREE_90
-        
-        for i in range(len(self.buttons)):
-            self.buttons[i] = joy.buttons[i]
-        for i in range(len(self.axes)):
-            self.axes[i] = joy.axes[i]
+  def input_depth(self, joy_input):
+    """When the input is -1, disable depth PID and slowly increase depth_pwm
+    When the input becomes 0 (after being -1), enble depth PID, set depth_setpoint and set depth_pwm to 0
+    When input is +1, disable PID and set depth_pwm to 0
+    """
+    # If input is +1
+    if self.inputs[joy_input] > 0.5:
+      self.depth_pwm_input = 0
+      self.publish(Topic.DEPTH_PID, False)
+      self.publish(Topic.DEPTH_PWM, 0)
+    # If input is -1
+    elif self.inputs[joy_input] < -0.5 and self.is_depth_valid():
+      self.publish(Topic.DEPTH_PID, False)
+      if self.depth_pwm_input < Joystick.MAX_DEPTH_PWM:
+        self.depth_pwm_input += 1
+      self.publish(Topic.DEPTH_PWM, self.depth_pwm_input)
+    # If input is 0
+    else:
+      if self.depth_pwm_input != 0:
+        self.depth_pwm_input = 0
+        self.publish(Topic.DEPTH_PWM, 0)
+        self.publish(Topic.DEPTH_PID, True)
+        # TODO -- CHECK DEPTH IS VALID
+        # TODO -- SETPOINT SHOULD NOT BE SET REPEATEDLY -- FIXED
+        self.publish(Topic.DEPTH_SETPOINT, self.depth_state)
 
 import atexit
 
 def kill_motors():
-    print("killed motors")
+  print("killed motors")
+  joystick = JoystickController()
+  joystick.check_disable_pids(1) # turns off PIDs and sets PWMs to 0
+    # off = Bool()
+    # off.data = False
+    # zeroInt = Int16()
+    # zeroInt.data = 0
+    # zeroFloat = Float64()
+    # zeroFloat.data = 0.0
+    # yaw_pub = rospy.Publisher('/yaw_pwm', Float64, queue_size=10)
+    # depth_pub = rospy.Publisher('/depth_pwm', Int16, queue_size=10)
+    # yaw_pid_pub = rospy.Publisher('yaw_control/pid', Bool, queue_size=10)
+    # depth_pid_pub = rospy.Publisher('/depth_control/pid', Bool, queue_size=10)
+    # yaw_pub.publish(zeroFloat)
+    # depth_pub.publish(zeroInt)
+    # yaw_pid_pub.publish(off)
+    # depth_pid_pub.publish(off)
 
-    off = Bool()
-    off.data = False
-    zeroInt = Int16()
-    zeroInt.data = 0
-    zeroFloat = Float64()
-    zeroFloat.data = 0.0
-    yaw_pub = rospy.Publisher('/yaw_pwm', Float64, queue_size=10)
-    depth_pub = rospy.Publisher('/depth_pwm', Int16, queue_size=10)
-    yaw_pid_pub = rospy.Publisher('yaw_control/pid', Bool, queue_size=10)
-    depth_pid_pub = rospy.Publisher('/depth_control/pid', Bool, queue_size=10)
-    yaw_pub.publish(zeroFloat)
-    depth_pub.publish(zeroInt)
-    yaw_pid_pub.publish(off)
-    depth_pid_pub.publish(off)
+    
 
 atexit.register(kill_motors)
 
-
 def main():
-    rospy.init_node('joystickController')
-    delay = rospy.Rate(20)
+  rospy.init_node('joystickController') # create a ROS node
+  rate = rospy.Rate(20) # set to 20 Hz (this program loops 20 times per second)
 
-    joyObject = JoyNode()
+  joystick = JoystickController() # initializes this object. Sets up Publishers and Subscribers
 
-    print("Python Project Running....")
-    while not rospy.is_shutdown():
-       joyObject.execute()
-       delay.sleep()
+  print("Python Project Running....")
+  while not rospy.is_shutdown(): # main loop
+    joystick.execute() # check the joystick inputs and use them to control the AUV
+    rate.sleep()
 
 if __name__ == '__main__':
-    main()
+  main()
