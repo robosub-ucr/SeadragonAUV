@@ -83,15 +83,19 @@ class Joystick:
         rospy.Subscriber(Topic.DEPTH_SETPOINT, Float64, self.depth_setpoint_callback)
 
         # ROS Publishers
+        # self.topics is a dictionary of dictionaries.
+        # 'publisher' contains the rospy.Publisher()
+        # 'msg' contains the Int16(), Float64(), or Bool() related to the publisher
+        # Use self.publish() rather than using self.topics directly.
         self.topics = {
-            Topic.YAW_PWM: {'publisher':rospy.Publisher(Topic.YAW_PWM, Int16, queue_size=10), 'msg':Int16},
-            Topic.YAW_PWM_FEEDBACK: {'publisher':rospy.Publisher(Topic.YAW_PWM_FEEDBACK, Int16, queue_size=10), 'msg':Int16},
-            Topic.YAW_PID: {'publisher':rospy.Publisher(Topic.YAW_PID, Bool, queue_size=10), 'msg':Bool},
-            Topic.YAW_SETPOINT: {'publisher':rospy.Publisher(Topic.YAW_SETPOINT, Float64, queue_size=10), 'msg':Float64},
+            Topic.YAW_PWM: {'publisher':rospy.Publisher(Topic.YAW_PWM, Int16, queue_size=10), 'msg':Int16()},
+            Topic.YAW_PWM_FEEDBACK: {'publisher':rospy.Publisher(Topic.YAW_PWM_FEEDBACK, Int16, queue_size=10), 'msg':Int16()},
+            Topic.YAW_PID: {'publisher':rospy.Publisher(Topic.YAW_PID, Bool, queue_size=10), 'msg':Bool()},
+            Topic.YAW_SETPOINT: {'publisher':rospy.Publisher(Topic.YAW_SETPOINT, Float64, queue_size=10), 'msg':Float64()},
 
-            Topic.DEPTH_PWM: {'publisher':rospy.Publisher(Topic.DEPTH_PWM, Int16, queue_size=10), 'msg':Int16},
-            Topic.DEPTH_PID: {'publisher':rospy.Publisher(Topic.DEPTH_PID, Bool, queue_size=10), 'msg':Bool},
-            Topic.DEPTH_SETPOINT: {'publisher':rospy.Publisher(Topic.DEPTH_SETPOINT, Int16, queue_size=10), 'msg':Int16},
+            Topic.DEPTH_PWM: {'publisher':rospy.Publisher(Topic.DEPTH_PWM, Int16, queue_size=10), 'msg':Int16()},
+            Topic.DEPTH_PID: {'publisher':rospy.Publisher(Topic.DEPTH_PID, Bool, queue_size=10), 'msg':Bool()},
+            Topic.DEPTH_SETPOINT: {'publisher':rospy.Publisher(Topic.DEPTH_SETPOINT, Int16, queue_size=10), 'msg':Int16()},
         }
 
     def yaw_state_callback(self, msg):
