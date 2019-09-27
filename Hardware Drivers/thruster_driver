@@ -48,7 +48,7 @@ int depthtot = 0;
 // as Not Connected (NC). From NUCLEO-F411RE board diagram, #9 and #11
 
 RawSerial device(PA_15, PB_7);  // Allows for UART functionality; PA_15(tx): +5V, PB_7(rx): GND
-DigitalOut testLed(LED1);   // still unsure about LED1 (pin/object?)
+DigitalOut testLed(LED1);
 Servo myservo(D3);  // Controls servo using a PwmOut signal from 0.0 to 1.0
 double pan_servo = 0;   // holds value that controls servo movement 0.0 to 1.0
 
