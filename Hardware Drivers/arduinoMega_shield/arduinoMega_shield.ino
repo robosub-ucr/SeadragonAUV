@@ -13,17 +13,17 @@ Adafruit_NeoPixel strip = Adafruit_NeoPixel(NUMPIXELS, PIN, NEO_GRB + NEO_KHZ800
 int delayval 	= 500;	// Delay for half a second
 int j 		= 0;	// Used in case 3 led state
 int k 		= 0;	// Blinking led
-int m 		= 0; 
+int m 		= 0;    // Value in meter -> converted to inches
 int rvsReady 	= 0;
 int sqnReady 	= 0;
 int prevTime 	= 0;
 
 int solenoid_input 	= 3;	// Pin number (9 on the schematic)
-const int highMask 	= 0xF0;
-const int lowMask 	= 0x0F;
-int solenoid_signal 	= 0;
-int fired 		= 0;
-int led_signal 		= 0;
+const int highMask 	= 0xF0; // 11110000
+const int lowMask 	= 0x0F; // 00001111
+int solenoid_signal 	= 0;//
+int fired 		= 0;        // tracks whether solenoid has fired
+int led_signal 		= 0;    //
 
 MS5837 sensor;
 

@@ -42,7 +42,7 @@ int depthtot = 0;
 
 // Tx - 11, Rx - 9
 RawSerial device(PA_15, PB_7);
-DigitalOut testLed(LED1);
+DigitalOut testLed(LED1);   // still unsure about LED1 (pin?)
 Servo myservo(D3);
 double pan_servo = 0;
 
