@@ -11,21 +11,21 @@ Adafruit_NeoPixel pixels = Adafruit_NeoPixel(NUMPIXELS, PIN, NEO_GRB + NEO_KHZ80
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(NUMPIXELS, PIN, NEO_GRB + NEO_KHZ800);
 
 int delayval 	= 500;	// Delay for half a second
-int j 		= 0;	// Used in case 3 led state
+int j 		= 0;	// Used in case 3 led state, acts like counter
 int k 		= 0;	// Blinking led
-int m 		= 0;    // Value in meter -> converted to inches
-int rvsReady 	= 0;
-int sqnReady 	= 0;
-int prevTime 	= 0;
+int m 		= 0;  // Value in meters -> converted to inches
+int rvsReady 	= 0;  // Ready statement on/off (1/0)
+int sqnReady 	= 0;  // another ready statement ?
+int prevTime 	= 0;  // Value in ms, used w/ ros::millis() to check # of ms passed since start of prgm
 
-int solenoid_input 	= 3;	// Pin number (9 on the schematic)
+int solenoid_input 	= 3;  // Pin number (9 on the schematic)
 const int highMask 	= 0xF0; // 11110000
 const int lowMask 	= 0x0F; // 00001111
-int solenoid_signal 	= 0;//
-int fired 		= 0;        // tracks whether solenoid has fired
-int led_signal 		= 0;    //
+int solenoid_signal 	= 0;  // takes data from Serial1 data bus
+int fired 		= 0;  // tracks whether solenoid has fired (1/0)
+int led_signal 		= 0;  // updated masked values
 
-MS5837 sensor;
+MS5837 sensor;  // Bluerobotics pressure sensor
 
 //------------------ Classes -------------------------------------------
 class Led_Class {

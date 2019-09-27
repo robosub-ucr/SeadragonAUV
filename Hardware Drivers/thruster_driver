@@ -5,6 +5,7 @@
 #include <std_msgs/Bool.h>
 // To find board/library references, check the google drive:
 // UCR RoboSub > Software > "Old Microcontroller Notes - Ray"
+// Currently messy document, planning on cleaning it up
 
 //------------Declare Global Variables------------------//
 
