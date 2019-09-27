@@ -65,9 +65,9 @@ void setup() {
     delay(5000);
   }*/
   
-  sensor.init();
+  sensor.init();  // must be called before operating sensor (returns true if successful)
   sensor.setFluidDensity(997); // kg/m^3 (997 freshwater, 1029 for seawater)
-  sensor.setModel(MS5837::MS5837_30BA);
+  sensor.setModel(MS5837::MS5837_30BA); // set sensor model (currently set to default)
 
   #if defined (__AVR_ATtiny85__)
     if (F_CPU == 16000000) clock_prescale_set(clock_div_1);
@@ -99,7 +99,7 @@ void loop() {
   // Read depth sensor data
   sensor.read();
   int depth = 0;
-  depth =  sensor.depth() * 39.37;
+  depth =  sensor.depth() * 39.37;  // depth returned in m, converted to inches
   Serial.println(sensor.depth());
 
   // Relay depth information to stm32
@@ -132,9 +132,9 @@ void loop() {
 
 void print_values(){
   int temp = 0;
-  temp = sensor.temperature();
+  temp = sensor.temperature();  // returns in Celsius
   Serial.print("Pressure: "); 
-  Serial.print(sensor.pressure()); 
+  Serial.print(sensor.pressure()); // returns in mbar
   Serial.println(" mbar");
   
   Serial.print("Temperature: "); // truncate the double read to an int
@@ -146,7 +146,7 @@ void print_values(){
   Serial.println(" in");
   
   Serial.print("Altitude: "); 
-  Serial.print(sensor.altitude()); 
+  Serial.print(sensor.altitude());  // returned in meters
   Serial.println(" m above mean sea level");
   
   delay(400);
@@ -173,7 +173,7 @@ double Convert_mtoin(double m){
 
 Solenoid::Solenoid(int S){  
   SSignal = S; // assgin pin value inputed to class varaiable
-  pinMode(SSignal, OUTPUT);// set pin as a output  
+  pinMode(SSignal, OUTPUT);// set pin as an output  
 }
 
 Solenoid Solenoid::Drop(){
@@ -189,6 +189,7 @@ Solenoid Solenoid::Drop(){
 //--------------- LED Functions -----------------------------------
 
 //enum LED_States {RESET_1};
+
 //Member function definitions
 void Led_Class :: update_led(int state){ 
   //===== Actions =====
