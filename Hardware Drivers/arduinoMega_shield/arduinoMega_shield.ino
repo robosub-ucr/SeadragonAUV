@@ -6,12 +6,12 @@
 #include <avr/power.h>
 #endif
 #define PIN            8  // LED PIN
-#define NUMPIXELS      9
+#define NUMPIXELS      9  // # of LEDs
 Adafruit_NeoPixel pixels = Adafruit_NeoPixel(NUMPIXELS, PIN, NEO_GRB + NEO_KHZ800);
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(NUMPIXELS, PIN, NEO_GRB + NEO_KHZ800);
 
 int delayval 	= 500;	// Delay for half a second
-int j 		= 0;	// Used in case 3 led state, acts like counter
+int j 		= 0;	// Used in case 3 led state, acts as the index of current pixel
 int k 		= 0;	// Blinking led
 int m 		= 0;  // Value in meters -> converted to inches
 int rvsReady 	= 0;  // Ready statement on/off (1/0)
@@ -37,7 +37,7 @@ class Led_Class {
 
 class Solenoid{
   private:
-  int SSignal; 		// Signal used by arduino to control flow of voltage foing into the solinoid
+  int SSignal; 		// Signal used by arduino to control flow of voltage going into the solinoid
   
   public:  
    Solenoid(int);	// Constructor to create a object from the input solenoid signal
@@ -96,7 +96,7 @@ void loop() {
     led_signal = led_signal >> 4;
   }
  
-  // Read depth sensor data
+  // Read and update sensor data
   sensor.read();
   int depth = 0;
   depth =  sensor.depth() * 39.37;  // depth returned in m, converted to inches
@@ -129,12 +129,12 @@ void loop() {
 
 
 //------------- Pressure Sensor Functions -----------------------
-
+// Prints values read by sensor: Temp -> C, Pres -> mbar, Depth -> m (converted to in), Alt -> m
 void print_values(){
   int temp = 0;
-  temp = sensor.temperature();  // returns in Celsius
+  temp = sensor.temperature();
   Serial.print("Pressure: "); 
-  Serial.print(sensor.pressure()); // returns in mbar
+  Serial.print(sensor.pressure());
   Serial.println(" mbar");
   
   Serial.print("Temperature: "); // truncate the double read to an int
@@ -146,12 +146,13 @@ void print_values(){
   Serial.println(" in");
   
   Serial.print("Altitude: "); 
-  Serial.print(sensor.altitude());  // returned in meters
+  Serial.print(sensor.altitude());
   Serial.println(" m above mean sea level");
   
   delay(400);
 }
 
+// Converts from meters to inches
 double Convert_mtoin(double m){
   double inch = m * 39.37;
   return inch;
@@ -171,11 +172,13 @@ double Convert_mtoin(double m){
 
 //------------- Solenoid Functions ---------------------------
 
+// Assigns pin value inputed, and sets pin as an output
 Solenoid::Solenoid(int S){  
-  SSignal = S; // assgin pin value inputed to class varaiable
-  pinMode(SSignal, OUTPUT);// set pin as an output  
+  SSignal = S;
+  pinMode(SSignal, OUTPUT);
 }
 
+// Updates solenoid signal to drop
 Solenoid Solenoid::Drop(){
     // put your main code here, to run repeatedly:  
   digitalWrite(SSignal, HIGH);    //Switch Solenoid ON
@@ -188,9 +191,10 @@ Solenoid Solenoid::Drop(){
 
 //--------------- LED Functions -----------------------------------
 
-//enum LED_States {RESET_1};
+//enum LED_States {RESET_1}; <-- originally commented out
 
 //Member function definitions
+// Update and display colors on LED depending on led_signal input
 void Led_Class :: update_led(int state){ 
   //===== Actions =====
   switch(state){
@@ -204,14 +208,14 @@ void Led_Class :: update_led(int state){
     break;
     
     case 1: //ALL RED
-      for(int i=0;i<NUMPIXELS;i++){
+      for(int i=0;i< NUMPIXELS;i++){
         pixels.setPixelColor(i, pixels.Color(255,3,3)); // Red color.
         pixels.show(); // This sends the updated pixel color to the hardware.
       } 
     break;
     
     case 2: //ALL GREEN
-      for(int i=0;i<NUMPIXELS;i++){
+      for(int i=0;i< NUMPIXELS;i++){
         pixels.setPixelColor(i, pixels.Color(3,255,3)); // Green color. 3, 255, 3
         pixels.show(); // This sends the updated pixel color to the hardware.
       } 
@@ -252,16 +256,21 @@ void Led_Class :: update_led(int state){
   return;
 }
 
+// Resets LED colors
 void Reset_LED (){
   for(int i = 0; i < NUMPIXELS; i++){
     pixels.setPixelColor(i, pixels.Color(0,0,0));
-    //pixels.show();
+    //pixels.show(); <-- may need to uncomment
     //delay(500);
   }
 }
 
+// Creates a wave pattern of green LEDs
+// j increments after each call
+// 
 void forwardCycle_3(){
   //for(int j = 0; j < NUMPIXELS ; j++){  
+  // 
   if(j == 0){
     Reset_LED();
   }
@@ -299,41 +308,46 @@ void forwardCycle_3(){
   }
 }
 
+// Creates a wave pattern of green LEDs
+// j decrements after each call
+// Sets current pixel GREEN, and turns off LED at j+3
 void backwardCycle_3(){
   //for(int j = NUMPIXELS - 1; j >= 0; j--){
+      // 
       if(j >= 0){
-        pixels.setPixelColor(j, pixels.Color(3,255,3));
-        if(j <= NUMPIXELS - 4){
+        pixels.setPixelColor(j, pixels.Color(3,255,3)); // green
+        if(j <= NUMPIXELS - 4){ // if j <= 5, turn off led j+3
            pixels.setPixelColor(j + 3, pixels.Color(0,0,0));
         }
         pixels.show();
         //delay(50);
         prevTime = millis();
-        while((millis()- prevTime) < 50){
+        while((millis()- prevTime) < 50){ // delay?
  
         }
       //}
       }
+      // When current pixel is -1, turn off 3 pixels following
       if(j < 0){
         pixels.setPixelColor(2, pixels.Color(0,0,0));
         pixels.show();
         //delay(50);
         prevTime = millis();
-        while((millis()- prevTime) < 50){
+        while((millis()- prevTime) < 50){ // delay?
  
         }
         pixels.setPixelColor(1, pixels.Color(0,0,0));
         pixels.show();
         //delay(50);
         prevTime = millis();
-        while((millis()- prevTime) < 50){
+        while((millis()- prevTime) < 50){ // delay?
   
         }
         pixels.setPixelColor(0, pixels.Color(0,0,0));
         pixels.show();
         //delay(50);
         prevTime = millis();
-        while((millis()- prevTime) < 50){
+        while((millis()- prevTime) < 50){ // delay?
  
         }
         rvsReady = 0; //READY STATEMENT OFF
