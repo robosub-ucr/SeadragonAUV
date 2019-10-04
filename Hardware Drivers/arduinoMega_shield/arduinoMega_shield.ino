@@ -69,9 +69,9 @@ void setup() {
   sensor.setFluidDensity(997); // kg/m^3 (997 freshwater, 1029 for seawater)
   sensor.setModel(MS5837::MS5837_30BA); // set sensor model (currently set to default)
 
-  // From AVR library: ?
+  // From AVR library: 
   // clock_div_1 = 1
-  // Set the clock prescaler register select bits, selecting a system clock division setting
+  // Set the clock prescaler register select bits, selecting a system clock division setting (???)
   #if defined (__AVR_ATtiny85__)
     if (F_CPU == 16000000) clock_prescale_set(clock_div_1); 
   #endif
@@ -325,7 +325,7 @@ void backwardCycle_3(){
         pixels.show();
         //delay(50);
         prevTime = millis();
-        while((millis()- prevTime) < 50){ // delay?
+        while((millis()- prevTime) < 50){
  
         }
       //}
@@ -336,21 +336,21 @@ void backwardCycle_3(){
         pixels.show();
         //delay(50);
         prevTime = millis();
-        while((millis()- prevTime) < 50){ // delay?
+        while((millis()- prevTime) < 50){
  
         }
         pixels.setPixelColor(1, pixels.Color(0,0,0));
         pixels.show();
         //delay(50);
         prevTime = millis();
-        while((millis()- prevTime) < 50){ // delay?
+        while((millis()- prevTime) < 50){
   
         }
         pixels.setPixelColor(0, pixels.Color(0,0,0));
         pixels.show();
         //delay(50);
         prevTime = millis();
-        while((millis()- prevTime) < 50){ // delay?
+        while((millis()- prevTime) < 50){
  
         }
         rvsReady = 0; //READY STATEMENT OFF
