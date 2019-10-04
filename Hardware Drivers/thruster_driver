@@ -58,6 +58,7 @@ int depth = 0;
 ros::Publisher depth_publisher("depth", &depth_msg);
 
 // Specific values (25, 29) are to help motors startup - further calibration may be required
+// May want to create a variable for these values
 
 // Updates depth thruster PWM value, thrusters oriented so +pwmbase: up/-pwmbase: down (check w/ team)
 void depth_motor_callback( const std_msgs::Int16& msg)
