@@ -52,10 +52,10 @@ Led_Class led1;
 int STATE;
 
 void setup() {
-  Serial.begin(9600);
-  Serial1.begin(9600);
+  Serial.begin(9600); // Rx - 0, Tx - 1
+  Serial1.begin(9600);  // Rx - 19, Tx - 18
   Serial.println("Starting");
-  Wire.begin();
+  Wire.begin(); // Initialize Wire library
   
  /*while (!sensor.init()) {
     Serial.println("Init failed!");
