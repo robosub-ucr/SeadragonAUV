@@ -21,7 +21,7 @@ int prevTime 	= 0;  // Value in ms, used w/ ros::millis() to check # of ms passe
 int solenoid_input 	= 3;  // Pin number (9 on the schematic)
 const int highMask 	= 0xF0; // 11110000
 const int lowMask 	= 0x0F; // 00001111
-int solenoid_signal 	= 0;  // takes data from Serial1 data bus
+int solenoid_signal = 0;  // takes data from Serial1 data bus
 int fired 		= 0;  // tracks whether solenoid has fired (1/0)
 int led_signal 		= 0;  // updated masked values
 
@@ -37,7 +37,7 @@ class Led_Class {
 
 class Solenoid{
   private:
-  int SSignal; 		// Signal used by arduino to control flow of voltage going into the solinoid
+  int SSignal; 		// Signal used by arduino to control flow of voltage going into the solenoid
   
   public:  
    Solenoid(int);	// Constructor to create a object from the input solenoid signal
@@ -186,7 +186,7 @@ Solenoid Solenoid::Drop(){
     // put your main code here, to run repeatedly:  
   digitalWrite(SSignal, HIGH);    //Switch Solenoid ON
   delay(25);                 
-  digitalWrite(SSignal, LOW);          //Switch it solenoid off again
+  digitalWrite(SSignal, LOW);     //Switch solenoid off again
   delay(25);
 }
 //------------- END Solenoid Functions ---------------------------
@@ -386,6 +386,7 @@ void backward_full(){
 }
 
 void BlinkYellow(){
+  // If LED off, set each LED to yellow and display
   if(k == 0){
     for(int i=0; i < NUMPIXELS; i++){
         pixels.setPixelColor(i, pixels.Color(248,255,3)); // yellow color.
@@ -394,6 +395,7 @@ void BlinkYellow(){
   
      k = 1;
   }
+  // LED is on, reset LED color and turn off
   else if (k == 1){
     Reset_LED();
     pixels.show(); 
