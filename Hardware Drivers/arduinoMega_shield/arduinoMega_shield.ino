@@ -15,7 +15,7 @@ int j 		= 0;	// Used in case 3 led state, acts as the index of current pixel
 int k 		= 0;	// Blinking led
 int m 		= 0;  // Value in meters -> converted to inches
 int rvsReady 	= 0;  // Ready statement on/off (1/0)
-int sqnReady 	= 0;  // another ready statement ?
+int sqnReady 	= 0;  // forward/backward LED
 int prevTime 	= 0;  // Value in ms, used w/ ros::millis() to check # of ms passed since start of prgm
 
 int solenoid_input 	= 3;  // Pin number (9 on the schematic)
@@ -52,8 +52,8 @@ Led_Class led1;
 int STATE;
 
 void setup() {
-  Serial.begin(9600); // Rx - 0, Tx - 1
-  Serial1.begin(9600);  // Rx - 19, Tx - 18
+  Serial.begin(9600); // Communicates w/ pressure sensor? opens serial port, sets data rate to 9600 bps; Rx - 0, Tx - 1
+  Serial1.begin(9600);  // Communicates w/ stm32 sets data rate to 9600 bps; Rx - 19, Tx - 18
   Serial.println("Starting");
   Wire.begin(); // Initialize Wire library
   
@@ -69,12 +69,15 @@ void setup() {
   sensor.setFluidDensity(997); // kg/m^3 (997 freshwater, 1029 for seawater)
   sensor.setModel(MS5837::MS5837_30BA); // set sensor model (currently set to default)
 
+  // From AVR library:
+  // clock_div_1 = 1
+  // Set the clock prescaler register select bits, selecting a system clock division setting
   #if defined (__AVR_ATtiny85__)
-    if (F_CPU == 16000000) clock_prescale_set(clock_div_1);
+    if (F_CPU == 16000000) clock_prescale_set(clock_div_1); 
   #endif
    
   pixels.begin();	// This initializes the NeoPixel library.
-  strip.begin();
+  strip.begin();  // Initializes NeoPixel library
   strip.show();		// Initialize all pixels to 'off'
 }
 //------------------ END Class Variable Initiaization -------------------------
@@ -92,12 +95,12 @@ void loop() {
     
     solenoid_signal = STATE; 
     led_signal = STATE;
-    led_signal &= highMask;
-    led_signal = led_signal >> 4;
+    led_signal &= highMask; // masks bit 7-4
+    led_signal = led_signal >> 4; // shift bits to 3-0
   }
  
   // Read and update sensor data
-  sensor.read();
+  sensor.read(); // MS5837
   int depth = 0;
   depth =  sensor.depth() * 39.37;  // depth returned in m, converted to inches
   Serial.println(sensor.depth());
