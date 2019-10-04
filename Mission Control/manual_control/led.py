@@ -35,10 +35,17 @@ class JoyLED:
 		self.timeInterval = 0
 		self.ledState = 0
 
+		self.depth = None
+
 		#os.chmod(self.FILEPATH, 666)
 
 		rospy.Subscriber('/joy_led/state', Int32, self.led_callback)
+		rospy.Subscriber('/depth', Int32, self.depth_callback)
 
+	def depth_callback(self, msg):
+		print("depth_callback(): ", msg.data)
+		self.depth = msg.data
+		print("self.depth = ", self.depth, type(self.depth))
 
 	def led_callback(self, msg):
 		print("led_callback()")
@@ -51,17 +58,51 @@ class JoyLED:
 		self.lastTime = self.currentTime
 
 	def execute(self):
+		#print(type(self.depth))
+		if not self.depth is None:
+			print("if self.depth")
+			if self.depth == 0:
+
+				self.checker_pattern()
+			else:
+				print("else")
+				pass
 		self.display()
 
-	def display(self):
-		#try:
-			f = open(self.FILEPATH, "w")
-			f.write(str(self.ledState))
-			f.close()
+	def checker_pattern(self):
+		print("checker_pattern")
+		self.ledState = 13
+		pass
 
-			f = open(self.FILEPATH, "w")
-			f.write(str(self.ledState + 1))
-			f.close()
+	def display(self):
+		delay = 0.010
+		with open(self.FILEPATH, "w") as f:
+			print("writing ", self.ledState)
+			f.write(str(self.ledState))
+		time.sleep(delay)
+		# with open(self.FILEPATH, "w") as f:
+		# 	f.write(str(self.ledState + 1))
+		# time.sleep(delay)
+		# with open(self.FILEPATH, "w") as f:
+		# 	f.write(str(self.ledState + 2))
+		# time.sleep(delay)
+		# with open(self.FILEPATH, "w") as f:
+		# 	f.write(str(self.ledState + 3))
+		# time.sleep(delay)
+		# as (f, err):
+		# 	if err:
+		# 		print("IOError: (custom): ", err)
+		# 	else:
+		# 		f.write(str(self.ledState))
+
+		#try:
+			# f = open(self.FILEPATH, "w")
+			# f.write(str(self.ledState))
+			# f.close()
+
+			# f = open(self.FILEPATH, "w")
+			# f.write(str(self.ledState + 1))
+			# f.close()
 
 		# except: #OSError as e:
 		# 	print("led.py did not find the joystick file")

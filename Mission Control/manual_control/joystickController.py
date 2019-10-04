@@ -3,6 +3,7 @@ from sensor_msgs.msg import Joy
 from std_msgs.msg import Int32, Float64, Bool, Int16
 import math
 import numpy as np
+from enum import IntEnum
 
 class JoyInput(IntEnum):
     A = 0
@@ -268,7 +269,7 @@ import atexit
 
 def kill_motors():
     print("killed motors")
-    joystick = JoystickController()
+    joystick = Joystick()
     joystick.check_disable_pids(1) # turns off PIDs and sets PWMs to 0
     # off = Bool()
     # off.data = False
@@ -291,7 +292,7 @@ def main():
     rospy.init_node('joystickController') # create a ROS node
     rate = rospy.Rate(20) # set to 20 Hz (this program loops 20 times per second)
 
-    joystick = JoystickController() # initializes this object. Sets up Publishers and Subscribers
+    joystick = Joystick() # initializes this object. Sets up Publishers and Subscribers
 
     print("Python Project Running....")
     while not rospy.is_shutdown(): # main loop
