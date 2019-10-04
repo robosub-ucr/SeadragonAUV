@@ -69,7 +69,7 @@ void setup() {
   sensor.setFluidDensity(997); // kg/m^3 (997 freshwater, 1029 for seawater)
   sensor.setModel(MS5837::MS5837_30BA); // set sensor model (currently set to default)
 
-  // From AVR library:
+  // From AVR library: ?
   // clock_div_1 = 1
   // Set the clock prescaler register select bits, selecting a system clock division setting
   #if defined (__AVR_ATtiny85__)
@@ -194,7 +194,7 @@ Solenoid Solenoid::Drop(){
 
 //--------------- LED Functions -----------------------------------
 
-//enum LED_States {RESET_1}; <-- originally commented out
+//enum LED_States {RESET_1};
 
 //Member function definitions
 // Update and display colors on LED depending on led_signal input
@@ -263,7 +263,7 @@ void Led_Class :: update_led(int state){
 void Reset_LED (){
   for(int i = 0; i < NUMPIXELS; i++){
     pixels.setPixelColor(i, pixels.Color(0,0,0));
-    //pixels.show(); <-- may need to uncomment
+    //pixels.show();
     //delay(500);
   }
 }
