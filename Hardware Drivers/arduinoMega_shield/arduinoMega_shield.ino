@@ -10,7 +10,7 @@
 Adafruit_NeoPixel pixels = Adafruit_NeoPixel(NUMPIXELS, PIN, NEO_GRB + NEO_KHZ800);
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(NUMPIXELS, PIN, NEO_GRB + NEO_KHZ800);
 
-int delayval 	= 500;	// Delay for half a second
+int delayval 	= 500;	// Delay for half a second? Unused
 int j 		= 0;	// Used in case 3 led state, acts as the index of current pixel
 int k 		= 0;	// Blinking led
 int m 		= 0;  // Value in meters -> converted to inches
