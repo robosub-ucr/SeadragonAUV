@@ -95,7 +95,7 @@ void loop() {
     
     solenoid_signal = STATE; 
     led_signal = STATE;
-    led_signal &= highMask; // masks bit 7-4
+    led_signal &= highMask; // takes bit 7-4
     led_signal = led_signal >> 4; // shift bits to 3-0
   }
  
