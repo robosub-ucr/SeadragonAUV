@@ -60,7 +60,7 @@ ros::Publisher depth_publisher("depth", &depth_msg);
 // May want to create a variable for these values
 
 // Updates depth thruster PWM value, thrusters oriented so +pwmbase: up/-pwmbase: down (check w/ team)
-void depth_motor_callback( const std_msgs::Int16& msg)
+void depth_motor_callback( const std_msgs::Int16& msg) //tag-depth
 {  
     if (msg.data == 0)
     {
@@ -80,7 +80,7 @@ void depth_motor_callback( const std_msgs::Int16& msg)
 
 // Forward thrust callback returns values [0:150]
 // Updates thrust PWM values, +pwm: forward/-pwm: reverse
-void thrust_motor_callback( const std_msgs::Int16& msg)
+void thrust_motor_callback( const std_msgs::Int16& msg) //tag-yaw
 {
     // Updates pwm values for forward thrust motors
     if (msg.data == 0)
@@ -103,7 +103,7 @@ void thrust_motor_callback( const std_msgs::Int16& msg)
 
 // Receives values ranging [0:75]
 // Updates yaw PWM values
-void yaw_feedback_callback( const std_msgs::Int16& msg)
+void yaw_feedback_callback( const std_msgs::Int16& msg) //tag-yaw
 {
     // Motors are off
     if (lthrustpwm == PWMBASELINE){
@@ -127,7 +127,7 @@ void yaw_feedback_callback( const std_msgs::Int16& msg)
 }   
 
 // Receives depth feedback vallues from [0:50]
-void depth_feedback_callback( const std_msgs::Int16& msg)
+void depth_feedback_callback( const std_msgs::Int16& msg)   //tag-depth
 {
     // depth feedback control
     if (msg.data > 1)
@@ -144,7 +144,7 @@ void depth_feedback_callback( const std_msgs::Int16& msg)
 }
 
 // Converts input value to stay within range of pan_servo: 0.0 to 1.0
-void pan_callback( const std_msgs::Int16& msg)
+void pan_callback( const std_msgs::Int16& msg)  //tag-servo
 {
     pan_servo = msg.data/100.0;
 }
@@ -186,7 +186,7 @@ int main()
         // Depth thrust + feedback
         depthtot = m1pwm + depthfeedback;
         
-        // Sets motor pwm in microseconds
+        // Sets motor pwm in microseconds "void set_depth_pwm(int depthtot)"  tag-depth
         m1.pulsewidth_us(depthtot);
         m2.pulsewidth_us(depthtot);
         m3.pulsewidth_us(depthtot);
