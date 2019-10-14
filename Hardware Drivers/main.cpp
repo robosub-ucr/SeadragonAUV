@@ -84,6 +84,7 @@ void depth_motor_callback( const std_msgs::Int16& msg)
     }
 }
 
+// T100 (except back-right thruster which is T200)
 // Forward thrust callback returns valules [0:150]
 void thrust_motor_callback( const std_msgs::Int16& msg)
 {
@@ -106,6 +107,7 @@ void thrust_motor_callback( const std_msgs::Int16& msg)
     }
 }
 
+// T200
 // Receives values ranging [0:75]
 void yaw_feedback_callback( const std_msgs::Int16& msg)
 {
@@ -217,6 +219,7 @@ int main()
         m2.pulsewidth_us(depthtot);
         m3.pulsewidth_us(depthtot);
         
+        // back right thruster is T200, other depth thrusters are T100. So we need to adjust PWM for that thruster
         if (m4pwm > 1500){
             depthtot_4map = map(m4pwm, 1500, 1800, 1500, 1630);
         }else if (m4pwm < 1500){
