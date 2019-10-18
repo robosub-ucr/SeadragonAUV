@@ -77,6 +77,12 @@ int rthrust_tot = 0;
 int depthfeedback = 0;
 int depthtot = 0;
 
+// simple map function to scale values for T100-T200 thrusters
+float map(float x, float in_min, float in_max, float out_min, float out_max)
+{
+  return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+}
+
 // Tx - (Pin PA_15) 11 from bottom, Rx - (Pin PB_7) 9 from bottom
 RawSerial device(PA_15, PB_7);  // Allows for UART communication between stm32 and arduino mega; PA_15(tx) PB_7(rx)
 DigitalOut testLed(LED1);  // LED1 predefined pin on mbed boards, 411RE - PA5
@@ -90,7 +96,7 @@ std_msgs::Int16 depth_msg;
 int depth = 0;
 ros::Publisher depth_publisher("depth", &depth_msg);
 
-// Specific values (25, 29) are to help motors startup - further calibration may be required
+// Specific values (25, 29) are to help motors startup, for T100 and T200 respectively - further calibration may be required
 // May want to create a variable for these values
 
 // Updates depth thruster PWM value, thrusters oriented so +pwmbase: up/-pwmbase: down (check w/ team)
@@ -112,6 +118,7 @@ void depth_motor_callback( const std_msgs::Int16& msg) //tag-depth
     }
 }
 
+// T100 (except back-right thruster which is T200)
 // Forward thrust callback returns values [0:150]
 // Updates thrust PWM values, +pwm: forward/-pwm: reverse
 void thrust_motor_callback( const std_msgs::Int16& msg) //tag-yaw
@@ -135,6 +142,7 @@ void thrust_motor_callback( const std_msgs::Int16& msg) //tag-yaw
     }
 }
 
+// T200
 // Receives values ranging [0:75]
 // Updates yaw PWM values
 void yaw_feedback_callback( const std_msgs::Int16& msg) //tag-yaw
@@ -224,8 +232,18 @@ int main()
         m1.pulsewidth_us(depthtot);
         m2.pulsewidth_us(depthtot);
         m3.pulsewidth_us(depthtot);
-        m4.pulsewidth_us(depthtot);
         
+        // back right thruster is T200, other depth thrusters are T100. So we need to adjust PWM for that thruster
+        if (m4pwm > 1500){
+            depthtot_4map = map(m4pwm, 1500, 1800, 1500, 1630);
+        }else if (m4pwm < 1500){
+            depthtot_4map = map(m4pwm, 1500, 1200, 1500, 1370);
+        }else{
+            depthtot_4map = PWMBASELINE;
+        }
+        m4.pulsewidth_us(depthtot_4map);
+
+
         // Fwd thrust + feedback
         lthrust_tot = lthrustpwm + lfeedback;
         rthrust_tot = rthrustpwm + rfeedback;

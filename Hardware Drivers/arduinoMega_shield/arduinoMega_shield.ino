@@ -252,7 +252,7 @@ void Led_Class :: update_led(int state){
       
     break;
     
-    case 5:  
+    case 5:  // reset case
       Reset_LED();
     break;
   }
@@ -285,9 +285,7 @@ void forwardCycle_3(){
       pixels.show();
       //delay(50);
       prevTime = millis();
-     while((millis()- prevTime) < 50){
- 
-     }
+     while((millis()- prevTime) < 50){} // delay
   }
    //}
    
@@ -296,16 +294,12 @@ void forwardCycle_3(){
     pixels.show();
     //delay(50);
     prevTime = millis();
-    while((millis()- prevTime) < 50){
- 
-    }
+    while((millis()- prevTime) < 50){}  // delay
     pixels.setPixelColor(NUMPIXELS - 1, pixels.Color(0,0,0));
     pixels.show();
     //delay(50);
     prevTime = millis();
-    while((millis()- prevTime) < 50){
- 
-    }
+    while((millis()- prevTime) < 50){} // delay
     rvsReady  = 1; //READY STATEMENT CHANGE
     //Reset_LED();
   }
@@ -325,8 +319,7 @@ void backwardCycle_3(){
         pixels.show();
         //delay(50);
         prevTime = millis();
-        while((millis()- prevTime) < 50){
- 
+        while((millis()- prevTime) < 50){} // delay 
         }
       //}
       }
@@ -336,23 +329,17 @@ void backwardCycle_3(){
         pixels.show();
         //delay(50);
         prevTime = millis();
-        while((millis()- prevTime) < 50){
- 
-        }
+        while((millis()- prevTime) < 50){} // delay
         pixels.setPixelColor(1, pixels.Color(0,0,0));
         pixels.show();
         //delay(50);
         prevTime = millis();
-        while((millis()- prevTime) < 50){
-  
-        }
+        while((millis()- prevTime) < 50){} // delay
         pixels.setPixelColor(0, pixels.Color(0,0,0));
         pixels.show();
         //delay(50);
         prevTime = millis();
-        while((millis()- prevTime) < 50){
- 
-        }
+        while((millis()- prevTime) < 50){} // delay
         rvsReady = 0; //READY STATEMENT OFF
         //Reset_LED();
       }
@@ -364,8 +351,7 @@ void fwd_full(){
         pixels.setPixelColor(m, pixels.Color(45,108,192)); // UCR Blue 45,108,192
         pixels.show(); 
         prevTime = millis();
-        while((millis()- prevTime) < 100){
-        }
+        while((millis()- prevTime) < 100){} // delay 
         if(m >= NUMPIXELS){
           sqnReady = 1;
         }
@@ -377,8 +363,7 @@ void backward_full(){
         pixels.setPixelColor(m, pixels.Color(241,171,0)); // UCR Gold 241,171,0
         pixels.show();
         prevTime = millis();
-        while((millis()- prevTime) < 100){
-        }
+        while((millis()- prevTime) < 100){} // delay
         if(m < 0){
           sqnReady = 0;
         }
@@ -403,9 +388,7 @@ void BlinkYellow(){
   }
   //delay(700);
   prevTime = millis();
-  while((millis()- prevTime) < 700){
- 
-  }    
+  while((millis()- prevTime) < 700){} // delay
 }
 
 // Input a value 0 to 255 to get a color value.
