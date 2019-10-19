@@ -28,7 +28,7 @@ class Thruster {
 
             // Tx - (Pin PA_15) 11 from bottom, Rx - (Pin PB_7) 9 from bottom
             RawSerial device(PA_15, PB_7);  // Allows for UART communication between stm32 and arduino mega; PA_15(tx) PB_7(rx)
-            DigitalOut testLed(LED1);  // LED1 predefined pin on mbed boards, 411RE - PA5
+            DigitalOut testLed(LED1);  // LED1 predefined pin on mbed boards, 411RE - D13
             Servo myservo(D3);  // Controls servo using a PwmOut signal from 0.0 to 1.0 *** Currently no servo ***
             double pan_servo = 0;   // holds value that controls servo movement 0.0 to 1.0 *** Currently no servo ***
 

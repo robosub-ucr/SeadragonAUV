@@ -10,7 +10,10 @@ class Node {
         std_msgs::Int16 depth_msg;
         int depth;
     public:
-        Node() { // 
+        Node() { // Constructor
+            ros::NodeHandle nh; // interface for creating subscribers and publishers, library included within <ros.h>
+            depth = 0;
+            
             // Initialize subscribers
             ros::Subscriber<std_msgs::Int16> depth_pwm_subscriber("depth_pwm", depth_motor_callback);
             ros::Subscriber<std_msgs::Int16> yaw_pwm_subscriber("yaw_pwm", thrust_motor_callback);
