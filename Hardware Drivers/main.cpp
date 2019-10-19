@@ -6,64 +6,66 @@
 #include "thruster.h"
 #include "node.h"
 
-int main() {    
-    nh.initNode();
-    nh.advertise(depth_publisher);
-    nh.subscribe(depth_pwm_subscriber);
-    nh.subscribe(yaw_pwm_subscriber);
-    nh.subscribe(fb_yaw_subscriber);
-    nh.subscribe(fb_depth_subscriber);
-    nh.subscribe(pan_servo_subscriber); // *** Currently no servo ***
+int main() {
+    Node nd;
+    
+    nd.nh.initNode();
+    nd.nh.advertise(depth_publisher);
+    nd.nh.subscribe(depth_pwm_subscriber);
+    nd.nh.subscribe(yaw_pwm_subscriber);
+    nd.nh.subscribe(fb_yaw_subscriber);
+    nd.nh.subscribe(fb_depth_subscriber);
+    nd.nh.subscribe(pan_servo_subscriber); // *** Currently no servo ***
 
-    testLed = 0;
+    nd.th.testLed = 0;
     
     while(1) {       
         // If data is recieved, blink led
-        if (device.readable()) {
+        if (nd.th.device.readable()) {
             // Obtain depth 
-            depth = device.getc(); // returns char from serial port
+            nd.depth = nd.th.device.getc(); // returns char from serial port
             // toggle led on
-            testLed = 1;
+            nd.th.testLed = 1;
         }
         
         // Publish depth information
-        depth_msg.data = depth;
-        depth_publisher.publish(&depth_msg);
+        nd.depth_msg.data = depth;
+        nd.depth_publisher.publish(&depth_msg);
         
         // Depth thrust + feedback
-        depthtot = m1pwm + depthfeedback;
+        nd.th.depthtot = nd.th.m1pwm + nd.th.depthfeedback;
         
         // Sets motor pwm in microseconds "void set_depth_pwm(int depthtot)"  tag-depth
-        m1.pulsewidth_us(depthtot);
-        m2.pulsewidth_us(depthtot);
-        m3.pulsewidth_us(depthtot);
+        nd.th.m1.pulsewidth_us(nd.th.depthtot);
+        nd.th.m2.pulsewidth_us(nd.th.depthtot);
+        nd.th.m3.pulsewidth_us(nd.th.depthtot);
         
         // back right thruster is T200, other depth thrusters are T100. So we need to adjust PWM for that thruster
         if (m4pwm > 1500) {
-            depthtot_4map = map(m4pwm, 1500, 1800, 1500, 1630); // [130(m4pwm - 1500)/300] + 1500 --> >1500
+            nd.th.depthtot_4map = nd.th.map(nd.th.m4pwm, 1500, 1800, 1500, 1630); // [130(m4pwm - 1500)/300] + 1500 --> >1500
         }
         else if (m4pwm < 1500) {
-            depthtot_4map = map(m4pwm, 1500, 1200, 1500, 1370); // [130(m4pwm - 1500)/300] + 1500 --> <1500
+            nd.th.depthtot_4map = nd.th.map(nd.th.m4pwm, 1500, 1200, 1500, 1370); // [130(m4pwm - 1500)/300] + 1500 --> <1500
         }
         else {
-            depthtot_4map = PWMBASELINE;
+            nd.th.depthtot_4map = nd.th.PWMBASELINE;
         }
-        m4.pulsewidth_us(depthtot_4map);
+        m4.pulsewidth_us(nd.th.depthtot_4map);
 
 
         // Fwd thrust + feedback
-        lthrust_tot = lthrustpwm + lfeedback;
-        rthrust_tot = rthrustpwm + rfeedback;
+        nd.th.lthrust_tot = nd.th.lthrustpwm + nd.th.lfeedback;
+        nd.th.rthrust_tot = nd.th.rthrustpwm + nd.th.rfeedback;
         
         // Output pwm to fwd/rev thrusters in microseconds   
-        lthrust.pulsewidth_us(lthrust_tot);
-        rthrust.pulsewidth_us(rthrust_tot);
+        nd.th.lthrust.pulsewidth_us(nd.th.lthrust_tot);
+        nd.th.rthrust.pulsewidth_us(nd.th.rthrust_tot);
         
         // actuate pan tilt camera *** servo not used ***
         myservo = pan_servo;    // controls servo movement based on adjusting values from 0.0 to 1.0
         
-        nh.spinOnce();  // ROS only processes callbacks when you tell it to
+        nd.nh.spinOnce();  // ROS only processes callbacks when you tell it to
         wait_ms(5);
-        testLed = 0;
+        nd.th.testLed = 0;
     }
 }

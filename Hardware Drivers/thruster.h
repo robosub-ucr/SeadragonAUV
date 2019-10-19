@@ -24,7 +24,7 @@ class Thruster {
 
             m1pwm = m2pwm = m3pwm = m4pwm = lthrustpwm = rthrustpwm = PWMBASELINE;
             lfeedback = rfeedback  = lthrust_tot = rthrust_tot = 0;
-            depthfeedback = depthtot = 0;
+            depthfeedback = depthtot = depthtot_4map = 0;
 
             // Tx - (Pin PA_15) 11 from bottom, Rx - (Pin PB_7) 9 from bottom
             RawSerial device(PA_15, PB_7);  // Allows for UART communication between stm32 and arduino mega; PA_15(tx) PB_7(rx)
