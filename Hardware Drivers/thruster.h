@@ -13,7 +13,7 @@ class thruster {
         int depthfeedback, depthtot;
 
     public:
-        void thruster() { // Constructor
+        thruster() { // Constructor
             // Initialize PWM object to specfic pin (D8-12, 14); D13 used as predefined pin for LED1
             PwmOut      m1(D8);
             PwmOut      m2(D9);
