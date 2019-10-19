@@ -5,7 +5,7 @@
 #include <std_msgs/Bool.h>
 #include "thruster.h"
 
-class Node() {
+class Node {
     private:
         std_msgs::Int16 depth_msg;
         int depth;

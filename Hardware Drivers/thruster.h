@@ -5,7 +5,7 @@
 #include <std_msgs/Bool.h>
 #include "node.h"
 
-class thruster {
+class Thruster {
     private:
         const int PWMBASELINE = 1500;
         int m1pwm, m2pwm, m3pwm, m4pwm, lthrustpwm, rthrustpwm;
