@@ -7,8 +7,9 @@
 
 class Node {
     private:
-        std_msgs::Int16 depth_msg;
         int depth;
+        std_msgs::Int16 depth_msg;
+
     public:
         Node() { // Constructor
             Thruster th;

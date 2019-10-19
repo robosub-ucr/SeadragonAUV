@@ -15,12 +15,12 @@ class Thruster {
     public:
         thruster() { // Constructor
             // Initialize PWM object to specfic pin (D8-12, 14); D13 used as predefined pin for LED1
-            PwmOut      m1(D8);
-            PwmOut      m2(D9);
-            PwmOut      m3(D10);
-            PwmOut      m4(D11);
-            PwmOut      lthrust(D12);
-            PwmOut      rthrust(D14);
+            PwmOut m1(D8);
+            PwmOut m2(D9);
+            PwmOut m3(D10);
+            PwmOut m4(D11);
+            PwmOut lthrust(D12);
+            PwmOut rthrust(D14);
 
             m1pwm = m2pwm = m3pwm = m4pwm = lthrustpwm = rthrustpwm = PWMBASELINE;
             lfeedback = rfeedback  = lthrust_tot = rthrust_tot = 0;
@@ -29,8 +29,8 @@ class Thruster {
             // Tx - (Pin PA_15) 11 from bottom, Rx - (Pin PB_7) 9 from bottom
             RawSerial device(PA_15, PB_7);  // Allows for UART communication between stm32 and arduino mega; PA_15(tx) PB_7(rx)
             DigitalOut testLed(LED1);  // LED1 predefined pin on mbed boards, 411RE - D13
-            Servo myservo(D3);  // Controls servo using a PwmOut signal from 0.0 to 1.0 *** Currently no servo ***
-            double pan_servo = 0;   // holds value that controls servo movement 0.0 to 1.0 *** Currently no servo ***
+            //Servo myservo(D3);  // Controls servo using a PwmOut signal from 0.0 to 1.0 *** Currently no servo ***
+            //double pan_servo = 0;   // holds value that controls servo movement 0.0 to 1.0 *** Currently no servo ***
 
 
         }
@@ -114,8 +114,10 @@ class Thruster {
             }   
         }
 
+/*
         // Converts input value to stay within range of pan_servo: 0.0 to 1.0
         void pan_callback( const std_msgs::Int16& msg) {    //tag-servo
             pan_servo = msg.data/100.0;
         }
+*/
 }

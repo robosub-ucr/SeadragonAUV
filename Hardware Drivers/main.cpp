@@ -15,7 +15,7 @@ int main() {
     nd.nh.subscribe(yaw_pwm_subscriber);
     nd.nh.subscribe(fb_yaw_subscriber);
     nd.nh.subscribe(fb_depth_subscriber);
-    nd.nh.subscribe(pan_servo_subscriber); // *** Currently no servo ***
+    //nd.nh.subscribe(pan_servo_subscriber); // *** Currently no servo ***
 
     nd.th.testLed = 0;
     
@@ -50,7 +50,7 @@ int main() {
         else {
             nd.th.depthtot_4map = nd.th.PWMBASELINE;
         }
-        m4.pulsewidth_us(nd.th.depthtot_4map);
+        nd.th.m4.pulsewidth_us(nd.th.depthtot_4map);
 
 
         // Fwd thrust + feedback
@@ -62,10 +62,10 @@ int main() {
         nd.th.rthrust.pulsewidth_us(nd.th.rthrust_tot);
         
         // actuate pan tilt camera *** servo not used ***
-        myservo = pan_servo;    // controls servo movement based on adjusting values from 0.0 to 1.0
+        //nd.th.myservo = nd.th.pan_servo;    // controls servo movement based on adjusting values from 0.0 to 1.0
         
         nd.nh.spinOnce();  // ROS only processes callbacks when you tell it to
-        wait_ms(5);
+        wait_ms(5); // nd.wait_ms(5);
         nd.th.testLed = 0;
     }
 }
