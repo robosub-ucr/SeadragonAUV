@@ -6,26 +6,26 @@
 #include <avr/power.h>
 #endif
 #define PIN            8  // LED PIN
-#define NUMPIXELS      9
+#define NUMPIXELS      9  // # of LEDs
 Adafruit_NeoPixel pixels = Adafruit_NeoPixel(NUMPIXELS, PIN, NEO_GRB + NEO_KHZ800);
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(NUMPIXELS, PIN, NEO_GRB + NEO_KHZ800);
 
-int delayval 	= 500;	// Delay for half a second
-int j 		= 0;	// Used in case 3 led state
+int delayval 	= 500;	// Delay for half a second? Unused
+int j 		= 0;	// Used in case 3 led state, acts as the index of current pixel
 int k 		= 0;	// Blinking led
-int m 		= 0; 
-int rvsReady 	= 0;
-int sqnReady 	= 0;
-int prevTime 	= 0;
+int m 		= 0;  // Counter
+int rvsReady 	= 0;  // Ready statement on/off (1/0)
+int sqnReady 	= 0;  // forward/backward LED
+int prevTime 	= 0;  // Value in ms, used w/ ros::millis() to check # of ms passed since start of prgm
 
-int solenoid_input 	= 3;	// Pin number (9 on the schematic)
-const int highMask 	= 0xF0;
-const int lowMask 	= 0x0F;
-int solenoid_signal 	= 0;
-int fired 		= 0;
-int led_signal 		= 0;
+int solenoid_input 	= 3;  // Pin number (9 on the schematic)
+const int highMask 	= 0xF0; // 11110000
+const int lowMask 	= 0x0F; // 00001111
+int solenoid_signal = 0;  // takes data from Serial1 data bus
+int fired 		= 0;  // tracks whether solenoid has fired (1/0)
+int led_signal 		= 0;  // updated masked values
 
-MS5837 sensor;
+MS5837 sensor;  // Bluerobotics pressure sensor
 
 //------------------ Classes -------------------------------------------
 class Led_Class {
@@ -37,7 +37,7 @@ class Led_Class {
 
 class Solenoid{
   private:
-  int SSignal; 		// Signal used by arduino to control flow of voltage foing into the solinoid
+  int SSignal; 		// Signal used by arduino to control flow of voltage going into the solenoid
   
   public:  
    Solenoid(int);	// Constructor to create a object from the input solenoid signal
@@ -52,10 +52,10 @@ Led_Class led1;
 int STATE;
 
 void setup() {
-  Serial.begin(9600);
-  Serial1.begin(9600);
+  Serial.begin(9600); // Communicates w/ pressure sensor? opens serial port, sets data rate to 9600 bps; Rx - 0, Tx - 1
+  Serial1.begin(9600);  // Communicates w/ stm32 sets data rate to 9600 bps; Rx - 19, Tx - 18
   Serial.println("Starting");
-  Wire.begin();
+  Wire.begin(); // Initialize Wire library
   
  /*while (!sensor.init()) {
     Serial.println("Init failed!");
@@ -65,16 +65,19 @@ void setup() {
     delay(5000);
   }*/
   
-  sensor.init();
+  sensor.init();  // must be called before operating sensor (returns true if successful)
   sensor.setFluidDensity(997); // kg/m^3 (997 freshwater, 1029 for seawater)
-  sensor.setModel(MS5837::MS5837_30BA);
+  sensor.setModel(MS5837::MS5837_30BA); // set sensor model (currently set to default)
 
+  // From AVR library: 
+  // clock_div_1 = 1
+  // Set the clock prescaler register select bits, selecting a system clock division setting (???)
   #if defined (__AVR_ATtiny85__)
-    if (F_CPU == 16000000) clock_prescale_set(clock_div_1);
+    if (F_CPU == 16000000) clock_prescale_set(clock_div_1); 
   #endif
    
   pixels.begin();	// This initializes the NeoPixel library.
-  strip.begin();
+  strip.begin();  // Initializes NeoPixel library
   strip.show();		// Initialize all pixels to 'off'
 }
 //------------------ END Class Variable Initiaization -------------------------
@@ -92,14 +95,14 @@ void loop() {
     
     solenoid_signal = STATE; 
     led_signal = STATE;
-    led_signal &= highMask;
-    led_signal = led_signal >> 4;
+    led_signal &= highMask; // takes bit 7-4
+    led_signal = led_signal >> 4; // shift bits to 3-0
   }
  
-  // Read depth sensor data
-  sensor.read();
+  // Read and update sensor data
+  sensor.read(); // MS5837
   int depth = 0;
-  depth =  sensor.depth() * 39.37;
+  depth =  sensor.depth() * 39.37;  // depth returned in m, converted to inches
   Serial.println(sensor.depth());
 
   // Relay depth information to stm32
@@ -129,12 +132,12 @@ void loop() {
 
 
 //------------- Pressure Sensor Functions -----------------------
-
+// Prints values read by sensor: Temp -> C, Pres -> mbar, Depth -> m (converted to in), Alt -> m
 void print_values(){
   int temp = 0;
   temp = sensor.temperature();
   Serial.print("Pressure: "); 
-  Serial.print(sensor.pressure()); 
+  Serial.print(sensor.pressure());
   Serial.println(" mbar");
   
   Serial.print("Temperature: "); // truncate the double read to an int
@@ -146,12 +149,13 @@ void print_values(){
   Serial.println(" in");
   
   Serial.print("Altitude: "); 
-  Serial.print(sensor.altitude()); 
+  Serial.print(sensor.altitude());
   Serial.println(" m above mean sea level");
   
   delay(400);
 }
 
+// Converts from meters to inches
 double Convert_mtoin(double m){
   double inch = m * 39.37;
   return inch;
@@ -171,16 +175,18 @@ double Convert_mtoin(double m){
 
 //------------- Solenoid Functions ---------------------------
 
+// Assigns pin value inputed, and sets pin as an output
 Solenoid::Solenoid(int S){  
-  SSignal = S; // assgin pin value inputed to class varaiable
-  pinMode(SSignal, OUTPUT);// set pin as a output  
+  SSignal = S;
+  pinMode(SSignal, OUTPUT);
 }
 
+// Updates solenoid signal to drop
 Solenoid Solenoid::Drop(){
     // put your main code here, to run repeatedly:  
   digitalWrite(SSignal, HIGH);    //Switch Solenoid ON
   delay(25);                 
-  digitalWrite(SSignal, LOW);          //Switch it solenoid off again
+  digitalWrite(SSignal, LOW);     //Switch solenoid off again
   delay(25);
 }
 //------------- END Solenoid Functions ---------------------------
@@ -189,7 +195,9 @@ Solenoid Solenoid::Drop(){
 //--------------- LED Functions -----------------------------------
 
 //enum LED_States {RESET_1};
+
 //Member function definitions
+// Update and display colors on LED depending on led_signal input
 void Led_Class :: update_led(int state){ 
   //===== Actions =====
   switch(state){
@@ -203,14 +211,14 @@ void Led_Class :: update_led(int state){
     break;
     
     case 1: //ALL RED
-      for(int i=0;i<NUMPIXELS;i++){
+      for(int i=0;i< NUMPIXELS;i++){
         pixels.setPixelColor(i, pixels.Color(255,3,3)); // Red color.
         pixels.show(); // This sends the updated pixel color to the hardware.
       } 
     break;
     
     case 2: //ALL GREEN
-      for(int i=0;i<NUMPIXELS;i++){
+      for(int i=0;i< NUMPIXELS;i++){
         pixels.setPixelColor(i, pixels.Color(3,255,3)); // Green color. 3, 255, 3
         pixels.show(); // This sends the updated pixel color to the hardware.
       } 
@@ -244,13 +252,14 @@ void Led_Class :: update_led(int state){
       
     break;
     
-    case 5:  
+    case 5:  // reset case
       Reset_LED();
     break;
   }
   return;
 }
 
+// Resets LED colors
 void Reset_LED (){
   for(int i = 0; i < NUMPIXELS; i++){
     pixels.setPixelColor(i, pixels.Color(0,0,0));
@@ -259,8 +268,12 @@ void Reset_LED (){
   }
 }
 
+// Creates a wave pattern of green LEDs
+// j increments after each call
+// 
 void forwardCycle_3(){
   //for(int j = 0; j < NUMPIXELS ; j++){  
+  // 
   if(j == 0){
     Reset_LED();
   }
@@ -272,9 +285,7 @@ void forwardCycle_3(){
       pixels.show();
       //delay(50);
       prevTime = millis();
-     while((millis()- prevTime) < 50){
- 
-     }
+     while((millis()- prevTime) < 50){} // delay
   }
    //}
    
@@ -283,58 +294,52 @@ void forwardCycle_3(){
     pixels.show();
     //delay(50);
     prevTime = millis();
-    while((millis()- prevTime) < 50){
- 
-    }
+    while((millis()- prevTime) < 50){}  // delay
     pixels.setPixelColor(NUMPIXELS - 1, pixels.Color(0,0,0));
     pixels.show();
     //delay(50);
     prevTime = millis();
-    while((millis()- prevTime) < 50){
- 
-    }
+    while((millis()- prevTime) < 50){} // delay
     rvsReady  = 1; //READY STATEMENT CHANGE
     //Reset_LED();
   }
 }
 
+// Creates a wave pattern of green LEDs
+// j decrements after each call
+// Sets current pixel GREEN, and turns off LED at j+3
 void backwardCycle_3(){
   //for(int j = NUMPIXELS - 1; j >= 0; j--){
+      // 
       if(j >= 0){
-        pixels.setPixelColor(j, pixels.Color(3,255,3));
-        if(j <= NUMPIXELS - 4){
+        pixels.setPixelColor(j, pixels.Color(3,255,3)); // green
+        if(j <= NUMPIXELS - 4){ // if j <= 5, turn off led j+3
            pixels.setPixelColor(j + 3, pixels.Color(0,0,0));
         }
         pixels.show();
         //delay(50);
         prevTime = millis();
-        while((millis()- prevTime) < 50){
- 
+        while((millis()- prevTime) < 50){} // delay 
         }
       //}
       }
+      // When current pixel is -1, turn off 3 pixels following
       if(j < 0){
         pixels.setPixelColor(2, pixels.Color(0,0,0));
         pixels.show();
         //delay(50);
         prevTime = millis();
-        while((millis()- prevTime) < 50){
- 
-        }
+        while((millis()- prevTime) < 50){} // delay
         pixels.setPixelColor(1, pixels.Color(0,0,0));
         pixels.show();
         //delay(50);
         prevTime = millis();
-        while((millis()- prevTime) < 50){
-  
-        }
+        while((millis()- prevTime) < 50){} // delay
         pixels.setPixelColor(0, pixels.Color(0,0,0));
         pixels.show();
         //delay(50);
         prevTime = millis();
-        while((millis()- prevTime) < 50){
- 
-        }
+        while((millis()- prevTime) < 50){} // delay
         rvsReady = 0; //READY STATEMENT OFF
         //Reset_LED();
       }
@@ -346,8 +351,7 @@ void fwd_full(){
         pixels.setPixelColor(m, pixels.Color(45,108,192)); // UCR Blue 45,108,192
         pixels.show(); 
         prevTime = millis();
-        while((millis()- prevTime) < 100){
-        }
+        while((millis()- prevTime) < 100){} // delay 
         if(m >= NUMPIXELS){
           sqnReady = 1;
         }
@@ -359,8 +363,7 @@ void backward_full(){
         pixels.setPixelColor(m, pixels.Color(241,171,0)); // UCR Gold 241,171,0
         pixels.show();
         prevTime = millis();
-        while((millis()- prevTime) < 100){
-        }
+        while((millis()- prevTime) < 100){} // delay
         if(m < 0){
           sqnReady = 0;
         }
@@ -368,6 +371,7 @@ void backward_full(){
 }
 
 void BlinkYellow(){
+  // If LED off, set each LED to yellow and display
   if(k == 0){
     for(int i=0; i < NUMPIXELS; i++){
         pixels.setPixelColor(i, pixels.Color(248,255,3)); // yellow color.
@@ -376,6 +380,7 @@ void BlinkYellow(){
   
      k = 1;
   }
+  // LED is on, reset LED color and turn off
   else if (k == 1){
     Reset_LED();
     pixels.show(); 
@@ -383,9 +388,7 @@ void BlinkYellow(){
   }
   //delay(700);
   prevTime = millis();
-  while((millis()- prevTime) < 700){
- 
-  }    
+  while((millis()- prevTime) < 700){} // delay
 }
 
 // Input a value 0 to 255 to get a color value.

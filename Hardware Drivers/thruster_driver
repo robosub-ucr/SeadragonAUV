@@ -3,6 +3,8 @@
 #include <ros.h>
 #include <std_msgs/Int16.h>
 #include <std_msgs/Bool.h>
+// To find board/library references, check the google drive:
+// UCR RoboSub > Software > "Old Microcontroller Notes - Ray"
 
 //------------Declare Global Variables------------------//
 
@@ -14,7 +16,7 @@
 //          |       |    
 //      (m3)         (m4)   
 
-// Initialize PWM objects
+// Initialize PWM object to specfic pin (D8-12, 14); D13 used as predefined pin for LED1
 PwmOut      m1(D8);
 PwmOut      m2(D9);
 PwmOut      m3(D10);
@@ -22,8 +24,9 @@ PwmOut      m4(D11);
 PwmOut      lthrust(D12);
 PwmOut      rthrust(D14);
 
-int PWMBASELINE = 1500;
-// Initialize all pwm values to the baseline value
+int PWMBASELINE = 1500; // data passed to ESC to control thrusters, values above/below determine thrust direction (CW/CCW)
+
+// Initialize all pwm values to the baseline value (motors are off)
 int m1pwm = PWMBASELINE;
 int m2pwm = PWMBASELINE;
 int m3pwm = PWMBASELINE;
@@ -40,31 +43,40 @@ int rthrust_tot = 0;
 int depthfeedback = 0;
 int depthtot = 0;
 
-// Tx - 11, Rx - 9
-RawSerial device(PA_15, PB_7);
-DigitalOut testLed(LED1);
-Servo myservo(D3);
-double pan_servo = 0;
+// simple map function to scale values for T100-T200 thrusters
+float map(float x, float in_min, float in_max, float out_min, float out_max)
+{
+  return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+}
+
+// Tx - (Pin PA_15) 11 from bottom, Rx - (Pin PB_7) 9 from bottom
+RawSerial device(PA_15, PB_7);  // Allows for UART communication between stm32 and arduino mega; PA_15(tx) PB_7(rx)
+DigitalOut testLed(LED1);  // LED1 predefined pin on mbed boards, 411RE - PA5
+Servo myservo(D3);  // Controls servo using a PwmOut signal from 0.0 to 1.0 *** Currently no servo ***
+double pan_servo = 0;   // holds value that controls servo movement 0.0 to 1.0 *** Currently no servo ***
 
 //--------------ROS Node Configuration---------------
-ros::NodeHandle nh;
+ros::NodeHandle nh; // interface for creating subscribers and publishers, library included within <ros.h>
 
 std_msgs::Int16 depth_msg;
 int depth = 0;
 ros::Publisher depth_publisher("depth", &depth_msg);
 
-void depth_motor_callback( const std_msgs::Int16& msg)
+// Specific values (25, 29) are to help motors startup, for T100 and T200 respectively - further calibration may be required
+// May want to create a variable for these values
+
+// Updates depth thruster PWM value, thrusters oriented so +pwmbase: up/-pwmbase: down (check w/ team)
+void depth_motor_callback( const std_msgs::Int16& msg) //tag-depth
 {  
     if (msg.data == 0)
     {
         m1pwm = m2pwm = m3pwm = m4pwm = PWMBASELINE;   
     }
-    else if (msg.data < 0)   
+    else if (msg.data < 0) 
     {
         m1pwm = m2pwm = m3pwm = m4pwm = PWMBASELINE - 25 + msg.data;
     }
-    else{
-        // Update motor pwm
+    else{  
         m1pwm = PWMBASELINE + 25 + msg.data;
         m2pwm = PWMBASELINE + 25 + msg.data;
         m3pwm = PWMBASELINE + 25 + msg.data;
@@ -72,8 +84,10 @@ void depth_motor_callback( const std_msgs::Int16& msg)
     }
 }
 
-// Forward thrust callback returns valules [0:150]
-void thrust_motor_callback( const std_msgs::Int16& msg)
+// T100 (except back-right thruster which is T200)
+// Forward thrust callback returns values [0:150]
+// Updates thrust PWM values, +pwm: forward/-pwm: reverse
+void thrust_motor_callback( const std_msgs::Int16& msg) //tag-yaw
 {
     // Updates pwm values for forward thrust motors
     if (msg.data == 0)
@@ -94,9 +108,12 @@ void thrust_motor_callback( const std_msgs::Int16& msg)
     }
 }
 
+// T200
 // Receives values ranging [0:75]
-void yaw_feedback_callback( const std_msgs::Int16& msg)
+// Updates yaw PWM values
+void yaw_feedback_callback( const std_msgs::Int16& msg) //tag-yaw
 {
+    // Motors are off
     if (lthrustpwm == PWMBASELINE){
         if (msg.data > 0.25){
             lfeedback = (msg.data + 29) * -1;
@@ -110,6 +127,7 @@ void yaw_feedback_callback( const std_msgs::Int16& msg)
             lfeedback = rfeedback = 0;   
         }
     }
+    // Motors are on
     else{   
         lfeedback = msg.data * -1;
         rfeedback = msg.data;       
@@ -117,7 +135,7 @@ void yaw_feedback_callback( const std_msgs::Int16& msg)
 }   
 
 // Receives depth feedback vallues from [0:50]
-void depth_feedback_callback( const std_msgs::Int16& msg)
+void depth_feedback_callback( const std_msgs::Int16& msg)   //tag-depth
 {
     // depth feedback control
     if (msg.data > 1)
@@ -133,16 +151,18 @@ void depth_feedback_callback( const std_msgs::Int16& msg)
     }   
 }
 
-void pan_callback( const std_msgs::Int16& msg)
+// Converts input value to stay within range of pan_servo: 0.0 to 1.0
+void pan_callback( const std_msgs::Int16& msg)  //tag-servo
 {
     pan_servo = msg.data/100.0;
 }
 
+// Initialize subscribers
 ros::Subscriber<std_msgs::Int16> depth_pwm_subscriber("depth_pwm", depth_motor_callback);
 ros::Subscriber<std_msgs::Int16> yaw_pwm_subscriber("yaw_pwm", thrust_motor_callback);
 ros::Subscriber<std_msgs::Int16> fb_yaw_subscriber("yaw_pwm_feedback", yaw_feedback_callback);
 ros::Subscriber<std_msgs::Int16> fb_depth_subscriber("depth_pwm_feedback", depth_feedback_callback);
-ros::Subscriber<std_msgs::Int16> pan_servo_subscriber("pan_servo", pan_callback);
+ros::Subscriber<std_msgs::Int16> pan_servo_subscriber("pan_servo", pan_callback); // *** Currently no servo ***
 
 int main() 
 {    
@@ -152,7 +172,7 @@ int main()
     nh.subscribe(yaw_pwm_subscriber);
     nh.subscribe(fb_yaw_subscriber);
     nh.subscribe(fb_depth_subscriber);
-    nh.subscribe(pan_servo_subscriber);
+    nh.subscribe(pan_servo_subscriber); // *** Currently no servo ***
 
     testLed = 0;
     
@@ -162,7 +182,7 @@ int main()
         if (device.readable())
         {
             // Obtain depth 
-            depth = device.getc();
+            depth = device.getc(); // returns char from serial port
             // toggle led on
             testLed = 1;
         }
@@ -174,24 +194,34 @@ int main()
         // Depth thrust + feedback
         depthtot = m1pwm + depthfeedback;
         
-        // Output motor pwm
+        // Sets motor pwm in microseconds "void set_depth_pwm(int depthtot)"  tag-depth
         m1.pulsewidth_us(depthtot);
         m2.pulsewidth_us(depthtot);
         m3.pulsewidth_us(depthtot);
-        m4.pulsewidth_us(depthtot);
         
+        // back right thruster is T200, other depth thrusters are T100. So we need to adjust PWM for that thruster
+        if (m4pwm > 1500){
+            depthtot_4map = map(m4pwm, 1500, 1800, 1500, 1630); // [130(m4pwm - 1500)/300] + 1500 --> >1500
+        }else if (m4pwm < 1500){
+            depthtot_4map = map(m4pwm, 1500, 1200, 1500, 1370); // [130(m4pwm - 1500)/300] + 1500 --> <1500
+        }else{
+            depthtot_4map = PWMBASELINE;
+        }
+        m4.pulsewidth_us(depthtot_4map);
+
+
         // Fwd thrust + feedback
         lthrust_tot = lthrustpwm + lfeedback;
         rthrust_tot = rthrustpwm + rfeedback;
         
-        // Output pwm to fwd/rev thrusters    
+        // Output pwm to fwd/rev thrusters in microseconds   
         lthrust.pulsewidth_us(lthrust_tot);
         rthrust.pulsewidth_us(rthrust_tot);
         
-        // actuate pan tilt camera
-        myservo = pan_servo;
+        // actuate pan tilt camera *** servo not used ***
+        myservo = pan_servo;    // controls servo movement based on adjusting values from 0.0 to 1.0
         
-        nh.spinOnce();
+        nh.spinOnce();  // ROS only processes callbacks when you tell it to
         wait_ms(5);
         testLed = 0;
     }
