@@ -63,7 +63,7 @@ def main():
 	GATE_DEPTH = 18					#The depth the sub will be when going through the gate (in inches)					
 	GATE_YAW_1 = 1.57				#Angle from the Start Positiion in pool to gate (in radians)
 	GATE_YAW_OFFSET = -0.017 * 5			#The angle offset from the center of the gate (Not correct, but used for testing)
-	GATE_YAW_2 = GATE_YAW_1 + GATE_YAW_OFFSET	#
+	GATE_YAW_2 = GATE_YAW_1 + GATE_YAW_OFFSET	#Sum of GATE_YAW_1 and GATE_YAW_OFFSET
 	GATE_CONVERGE_TICKS = 5000			#Amount of time the sub will go from PENDING (in secs/ this is an estimate)  
 	GATE_FORWARD_TICKS = 10000			#Amount of time the sub will go from the dock to gate(in secs/ this is an estimate)
 	BUOY_DEPTH = 5 * 12				# (in inches)
