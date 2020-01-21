@@ -12,14 +12,17 @@ DEPTH_VARIANCE = 1
 YAW_VARIANCE = 0.017 # in radians (0.017 = 1 radian)
 YAW_CHANGE = 0.017
 
+#IDEALLY WE WANT TO ASK THE CAMERA ITS DIMENSIONS AND THEN SET THEM TO CAMERA_WIDTH/CAMERA_HEIGHT
+
 CAMERA_WIDTH = 400
 CAMERA_HEIGHT = 300
 CENTER_PADDING_X = 5
 CENTER_PADDING_Y = 5
 
 AREA_THRESHOLD_LOW = 0.12
-AREA_THRESHOLD_HIGH = 0.15
+AREA_THRESHOLD_HIGH = 0.153
 
+#Ed made these topic names so he wouldn't have to rewrite them
 class TopicName(enum.Enum):
   depth_control_state = "/depth_control/state"
   depth_control_setpoint = "/depth_control/setpoint"
@@ -66,6 +69,9 @@ class Reset(smach.State):
 	def execute(self, userdata):
 		# Currently, this state does nothing
 		return 'done'
+		self.yaw = 0
+		self.yaw_received = False
+		self.yaw_publisher = rospy.Publisher('yaw_control/setpoint'
 
 
 class YawStateIsSetpoint(smach.State):

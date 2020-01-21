@@ -19,10 +19,10 @@ from std_msgs.msg import Bool, Float64, Int16
 
 
 ##------------------------- STATE DEFINITIONS -----------------------------------##
-
-GATE_TASK = 0
-BUOY_TASK = 1
-TORPEDO_TASK =2
+#These are the numbers assigned for each task.
+GATE_TASK = 0		
+BUOY_TASK = 1		
+TORPEDO_TASK = 2
 DUMMY_TASK = 3
 
 class IdleState(smach.State):
