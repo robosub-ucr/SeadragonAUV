@@ -69,9 +69,9 @@ class Reset(smach.State):
 	def execute(self, userdata):
 		# Currently, this state does nothing
 		return 'done'
-		self.yaw = 0
-		self.yaw_received = False
-		self.yaw_publisher = rospy.Publisher('yaw_control/setpoint'
+		#self.yaw = 0
+		#self.yaw_received = False
+		#self.yaw_publisher = rospy.Publisher('yaw_control/setpoint')
 
 
 class YawStateIsSetpoint(smach.State):
