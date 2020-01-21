@@ -17,11 +17,11 @@ YAW_INCREASE = 0.017			#Minimum in radians that the sub can turn (1 degree)
 DEPTH_STEP = 1				#Minimum depth level (in inches)
 FORWARD_THRUST_INCREASE = 60 		#Value that the sub will move forward to increase speed (bursts of acceleration)
 AREA_THRESHOLD_LOW = 0.15 		#The threshold for the minimum closeness the object HAS to be
-AREA_THRESHOLD_HIGH = 0.2		#The threshold for the maximum closeness the object COULD to be
+AREA_THRESHOLD_HIGH = 0.2		#The threshold for the maximum closeness the object COULD be
 TORPEDO_Y_OFFSET = 10 			#Offset of the torpedo position and the camera (target box). 
 MAX_FORWARD_THRUST= 120 		#Maximum that the state machines will allow the thrusters to go.
 
-class StartState(smach.State):	# This one is pretty self explanatory
+class StartState(smach.State):	# This one is pretty self explanatory - Ed
 	def __init__(self):
 		smach.State.__init__(self, outcomes=['ready', 'notready'])
 
@@ -38,7 +38,7 @@ class StartState(smach.State):	# This one is pretty self explanatory
 		else:
 			return 'notready'
 
-class TrackObjectState(smach.State): #
+class TrackObjectState(smach.State): 
 	def __init__(self, obj_topic, yoffset):
 		smach.State.__init__(self, outcomes=['done', 'notdone', 'reset'])
 

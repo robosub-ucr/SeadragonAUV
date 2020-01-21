@@ -60,7 +60,7 @@ def main():
 		'area':'/gate_area'
 	}
 	
-	GATE_DEPTH = 18					#The depth the sub will be when going throught the gate (in inches)					
+	GATE_DEPTH = 18					#The depth the sub will be when going through the gate (in inches)					
 	GATE_YAW_1 = 1.57				#Angle from the Start Positiion in pool to gate (in radians)
 	GATE_YAW_OFFSET = -0.017 * 5			#The angle offset from the center of the gate (Not correct, but used for testing)
 	GATE_YAW_2 = GATE_YAW_1 + GATE_YAW_OFFSET	#Variable that sub uses to 
