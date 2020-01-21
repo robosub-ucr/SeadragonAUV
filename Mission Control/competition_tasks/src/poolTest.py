@@ -113,11 +113,31 @@ def main():
                                        "notdone": "SM_MaintainDepth",
                                        "reset": "__RESET_STATE__"})
     
-    smach.StateMachine.add("SM_RotateLeft90", state.RotateYawToRelativeTarget(1.57), 
-                          transitions={"done":"??????",
-                                      "notdone":"SM_RotateLeft90",
+    smach.StateMachine.add("SM_RotateLeft360", state.RotateYawToRelativeTarget(-6.28), 
+                          transitions={"done":"SM_RotateRight360",
+                                      "notdone":"SM_RotateLeft360",
                                       "reset":"SM_Reset"})
-    
+	
+    smach.StateMachine.add("SM_RotateRight360", state.RotateYawToRelativeTarget(6.28), 
+                          transitions={"done":"MoveBackAndForth",
+                                      "notdone":"SM_RotateRight360",
+                                      "reset":"SM_Reset"})
+
+    smach.StateMachine.add("SM_MoveBackAndForth", state.?????(), // TODO: Find function for "?????()"
+                          transitions={"done":"MoveBackAndForth",
+                                      "notdone":"SM_MoveBackAndForth",
+                                      "reset":"SM_Reset"})
+	
+    smach.StateMachine.add("SM_MoveToBordersAndBack", state.?????(), // TODO: Find function for "?????()"
+		  transitions={"done":"SM_Ascend",
+			      "notdone":"SM_MoveToBordersAndBack",
+			      "reset":"SM_Reset"})
+
+	smach.StateMachine.add("SM_Ascend", state.?????(), // TODO: Find function for "?????()"
+		  transitions={"done":"END",
+			      "notdone":"SM_MoveToBordersAndBack",
+			      "reset":"SM_Reset"})
+
     smach.StateMachine.add("SM_Reset", state.Reset(), 
                           transitions={"done": "SM_CheckDepth"})
     
