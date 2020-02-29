@@ -47,28 +47,25 @@ class maintain_depth(smach.State):
     
     
 class WaitForTopicEqual(smach.State):
-    def __init__(self, topic_name, topic_datatype, value):
-      smach.State.__init__(self, outcomes=['done', 'notdone'])
-      self.reset = False
-      self.data = None
-      
-      rospy.Subscriber("/reset", Bool, self.reset_callback)
-      rospy.Subscriber(topic_name, topic_datatype, self.topic_callback)
-      
-    def reset_callback(self, msg):
-			self.reset = msg.data
-      
-    def execute(self, userdata):
-      if self.reset:
-        return "reset"
-      
-      if self.data == value:
-        return "done"
-      else:
-        return "notdone"
-      
-    def topic_callback(self, msg):
-      self.data = msg.data
+	def __init__(self, topic_name, topic_datatype, value):
+		smach.State.__init__(self, outcomes=['done', 'notdone'])
+		self.reset = False
+		self.data = None
+		rospy.Subscriber("/reset", Bool, self.reset_callback)
+		rospy.Subscriber(topic_name, topic_datatype, self.topic_callback)
+	
+	def reset_callback(self, msg):
+		self.reset = msg.data
+		
+	def execute(self, userdata):
+		if self.reset:
+			return "reset"
+		if self.data == value:
+			return "done"
+		else:
+			return "notdone"
+		def topic_callback(self, msg):
+			self.data = msg.data
 
 def main():
 	# initial arguments
@@ -96,50 +93,43 @@ def main():
 	# Create and start introspection server - fancy way of saying view gui feature
 	sis = smach_ros.IntrospectionServer("introspection_server", sm, "/SM_POOL_TEST")
 	sis.start()
-  
-  START_DEPTH = 12 # in inches, the depth at which the state machine will start
+	START_DEPTH = 12 # in inches, the depth at which the state machine will start
 
 	# Open the container
 	with sm:
-    # Check that the sub's depth is at 12 inches below surface, then move to the next state
-    smach.StateMachine.add("SM_CheckDepth", WaitForTopicEqual("/depth_control/state", Int16, START_DEPTH),
-                           transitions={"done":"SM_MaintainDepth",
-                                       "notdone": "SM_CheckDepth",
-                                       "reset": "SM_Reset"})
+		# Check that the sub's depth is at 12 inches below surface, then move to the next state
+		smach.StateMachine.add("SM_CheckDepth", WaitForTopicEqual("/depth_control/state", Int16, START_DEPTH),
+			transitions={"done":"SM_MaintainDepth",
+                        	"notdone": "SM_CheckDepth",
+                                "reset": "SM_Reset"})
 		# Maintain its current depth by setting the depth_setpoint to the current depth
-    # Turn on the depth_pid
+		# Turn on the depth_pid
 		smach.StateMachine.add("SM_MaintainDepth", STATE_CLASS(),
-                           transitions={"done":"__NEXT_STATE__",
-                                       "notdone": "SM_MaintainDepth",
-                                       "reset": "__RESET_STATE__"})
-    
-    smach.StateMachine.add("SM_RotateLeft360", state.RotateYawToRelativeTarget(-6.28), 
-                          transitions={"done":"SM_RotateRight360",
-                                      "notdone":"SM_RotateLeft360",
-                                      "reset":"SM_Reset"})
-	
-    smach.StateMachine.add("SM_RotateRight360", state.RotateYawToRelativeTarget(6.28), 
-                          transitions={"done":"MoveBackAndForth",
-                                      "notdone":"SM_RotateRight360",
-                                      "reset":"SM_Reset"})
-
-    smach.StateMachine.add("SM_MoveBackAndForth", state.?????(), // TODO: Find function for "?????()"
-                          transitions={"done":"MoveBackAndForth",
-                                      "notdone":"SM_MoveBackAndForth",
-                                      "reset":"SM_Reset"})
-	
-    smach.StateMachine.add("SM_MoveToBordersAndBack", state.?????(), // TODO: Find function for "?????()"
-		  transitions={"done":"SM_Ascend",
-			      "notdone":"SM_MoveToBordersAndBack",
-			      "reset":"SM_Reset"})
-
-	smach.StateMachine.add("SM_Ascend", state.?????(), // TODO: Find function for "?????()"
-		  transitions={"done":"END",
-			      "notdone":"SM_MoveToBordersAndBack",
-			      "reset":"SM_Reset"})
-
-    smach.StateMachine.add("SM_Reset", state.Reset(), 
-                          transitions={"done": "SM_CheckDepth"})
+                	transitions={"done":"__NEXT_STATE__",
+                        	"notdone": "SM_MaintainDepth",
+                                "reset": "__RESET_STATE__"})
+    		smach.StateMachine.add("SM_RotateLeft360", state.RotateYawToRelativeTarget(-6.28), 
+                	transitions={"done":"SM_RotateRight360",
+                        	"notdone":"SM_RotateLeft360",
+                                "reset":"SM_Reset"})
+		smach.StateMachine.add("SM_RotateRight360", state.RotateYawToRelativeTarget(6.28), 
+                	transitions={"done":"MoveBackAndForth",
+                                "notdone":"SM_RotateRight360",
+                                "reset":"SM_Reset"})
+		smach.StateMachine.add("SM_MoveBackAndForth", state.?????(), // TODO: Find function for "?????()"
+                	transitions={"done":"MoveBackAndForth",
+                                "notdone":"SM_MoveBackAndForth",
+                                "reset":"SM_Reset"})
+		smach.StateMachine.add("SM_MoveToBordersAndBack", state.?????(), // TODO: Find function for "?????()"
+			transitions={"done":"SM_Ascend",
+				"notdone":"SM_MoveToBordersAndBack",
+				"reset":"SM_Reset"})
+		smach.StateMachine.add("SM_Ascend", state.?????(), // TODO: Find function for "?????()"
+			transitions={"done":"END",
+				"notdone":"SM_MoveToBordersAndBack",
+				"reset":"SM_Reset"})
+		smach.StateMachine.add("SM_Reset", state.Reset(), 
+                	transitions={"done": "SM_CheckDepth"})
     
 		# Add states to the container
 		# smach.StateMachine.add("start", start(),
